@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier
+_commit: ed61835
+_src_path: https://github.com/python-project-templates/base.git
+add_docs: false
+add_extension: js
+add_wiki: false
+email: dev@1kbgz.com
+github: 1kbgz
+project_description: For your agents
+project_name: langley
+python_version_primary: '3.11'
+team: the langley authors
