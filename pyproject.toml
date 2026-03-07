@@ -30,7 +30,10 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 
-dependencies = []
+dependencies = [
+    "starlette>=0.40",
+    "uvicorn[standard]>=0.30",
+]
 
 [project.optional-dependencies]
 develop = [
@@ -40,6 +43,7 @@ develop = [
     "codespell",
     "hatch-js",
     "hatchling",
+    "httpx",
     "mdformat",
     "mdformat-tables>=1",
     "pytest",
@@ -52,6 +56,7 @@ develop = [
 ]
 
 [project.scripts]
+langley = "langley.cli:main"
 
 [project.urls]
 Repository = "https://github.com/1kbgz/langley"

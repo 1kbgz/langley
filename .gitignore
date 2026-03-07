@@ -159,3 +159,13 @@ target
 # Hydra
 outputs/
 multirun/
+
+# References
+claude-agent-sdk-python
+copilot-sdk
+open-agent
+opencode
+
+# Outputs
+.langley
+

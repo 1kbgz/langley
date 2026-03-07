@@ -6,7 +6,7 @@ add_extension: js
 add_wiki: false
 email: dev@1kbgz.com
 github: 1kbgz
-project_description: For your agents
+project_description: A headquarters for your agents
 project_name: langley
 python_version_primary: '3.11'
 team: the langley authors
