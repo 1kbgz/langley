@@ -21,8 +21,8 @@ importers:
         specifier: ^19.1.0
         version: 19.2.4(react@19.2.4)
       regular-layout:
-        specifier: file:../regular-layout
-        version: file:../regular-layout
+        specifier: ^0.2.1
+        version: 0.2.1
     devDependencies:
       '@testing-library/dom':
         specifier: ^10.4.0
@@ -1360,8 +1360,8 @@ packages:
     resolution: {integrity: sha512-dYqgNSZbDwkaJ2ceRd9ojCGjBq+mOm9LmtXnAnEGyHhN/5R7iDW2TRw3h+o/jCFxus3P2LfWIIiwowAjANm7IA==}
     engines: {node: '>= 0.4'}
 
-  regular-layout@file:../regular-layout:
-    resolution: {directory: ../regular-layout, type: directory}
+  regular-layout@0.2.1:
+    resolution: {integrity: sha512-Hdh4Wo+WWrrq53WhzVYgW2BIeNndwmDirYi1cFzitJpXNP7zHOqUYB3nAKvFKpum9HjnsAWkW1j7AYQ32xmpTA==}
 
   requires-port@1.0.0:
     resolution: {integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==}
@@ -3073,7 +3073,7 @@ snapshots:
       gopd: 1.2.0
       set-function-name: 2.0.2
 
-  regular-layout@file:../regular-layout: {}
+  regular-layout@0.2.1: {}
 
   requires-port@1.0.0: {}
 
