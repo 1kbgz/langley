@@ -42,9 +42,15 @@ function toSummary(info: AgentInfo): AgentSummary {
 
 // ── Layout helpers ─────────────────────────────────────────
 
-type PanelId = "status" | "chat" | "logs" | "profiles" | "messages" | "traces";
+export type PanelId =
+  | "status"
+  | "chat"
+  | "logs"
+  | "profiles"
+  | "messages"
+  | "traces";
 
-const ALL_PANELS: PanelId[] = [
+export const ALL_PANELS: PanelId[] = [
   "status",
   "chat",
   "logs",
@@ -54,13 +60,13 @@ const ALL_PANELS: PanelId[] = [
 ];
 
 /** Extract all panel names from a regular-layout Layout tree. */
-function extractPanelNames(layout: unknown): Set<string> {
+export function extractPanelNames(layout: unknown): Set<string> {
   const names = new Set<string>();
   function walk(node: unknown) {
     if (!node || typeof node !== "object") return;
     const n = node as Record<string, unknown>;
-    if (n.type === "child-panel" && Array.isArray(n.tabs)) {
-      for (const t of n.tabs) names.add(t as string);
+    if (n.type === "child-panel" && Array.isArray(n.child)) {
+      for (const t of n.child) names.add(t as string);
     } else if (n.type === "split-panel" && Array.isArray(n.children)) {
       for (const c of n.children) walk(c);
     }
@@ -76,7 +82,7 @@ interface InspectorState {
 
 // ── Hash Router (deep-links only) ──────────────────────────
 
-function parseHash(hash: string): {
+export function parseHash(hash: string): {
   panels: PanelId[];
   inspector?: InspectorState;
   chatAgentId?: string;
