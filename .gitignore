@@ -146,6 +146,7 @@ target
 outputs/
 multirun/
 
+<<<<<<< before updating
 # References
 claude-agent-sdk-python
 copilot-sdk
@@ -155,3 +156,8 @@ opencode
 # Outputs
 .langley
 
+=======
+# AI
+ROADMAP.md
+AGENTS.md
+>>>>>>> after updating
