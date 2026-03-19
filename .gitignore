@@ -146,6 +146,10 @@ target
 outputs/
 multirun/
 
+# AI
+ROADMAP.md
+AGENTS.md
+
 # References
 claude-agent-sdk-python
 copilot-sdk
@@ -154,4 +158,3 @@ opencode
 
 # Outputs
 .langley
-
