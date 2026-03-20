@@ -149,6 +149,7 @@ multirun/
 # AI
 ROADMAP.md
 AGENTS.md
+.github/hooks/sdlc.json
 
 # References
 claude-agent-sdk-python
