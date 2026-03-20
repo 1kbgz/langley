@@ -8,6 +8,13 @@ Usage:
     langley agent launch      Launch an agent from a profile
     langley agent stop <id>   Stop a running agent
     langley agent kill <id>   Force-kill an agent
+
+Configuration is loaded from (in order):
+    1. --config <path>
+    2. ./langley.cfg
+    3. ~/.langley.cfg
+
+CLI flags override config file values.
 """
 
 import argparse
@@ -22,6 +29,7 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 from langley import __version__
+from langley.config import DEFAULTS, load_config
 
 logger = logging.getLogger(__name__)
 
@@ -47,14 +55,14 @@ def _api_request(base: str, method: str, path: str, body: dict | None = None) ->
         sys.exit(1)
 
 
-def _start_api_server(host: str, port: int, data_dir: str, static_dir: Path | None = None):
+def _start_api_server(host: str, port: int, data_dir: str, auth_provider: str = "none", static_dir: Path | None = None):
     """Start the Starlette API server via uvicorn in a background thread."""
     import uvicorn  # optional heavy dependency
 
     from langley.server import create_app
     from langley.server_state import ServerState
 
-    state = ServerState.create_default(data_dir=data_dir)
+    state = ServerState.create_default(data_dir=data_dir, auth_provider=auth_provider)
     if static_dir is not None:
         state.static_dir = static_dir
     app = create_app(state)
@@ -102,8 +110,8 @@ def cmd_up(args: argparse.Namespace) -> int:
     """Start the langley server (API + built UI on one port)."""
     host = args.host
     port = args.port
-    _start_api_server(host, port, data_dir=args.data_dir)
-    logger.info("Running at http://%s:%d", host, port)
+    _start_api_server(host, port, data_dir=args.data_dir, auth_provider=args.auth)
+    logger.info("Running at http://%s:%d (auth: %s)", host, port, args.auth)
     logger.info("Press Ctrl+C to stop.")
     return _wait_and_cleanup(None)
 
@@ -123,8 +131,8 @@ def cmd_dev(args: argparse.Namespace) -> int:
 
     if not args.ui_only:
         dev_static = js_dir / "dist" if js_dir is not None else None
-        api_server = _start_api_server(host, api_port, data_dir=args.data_dir, static_dir=dev_static)
-        logger.info("API server running at http://%s:%d", host, api_port)
+        api_server = _start_api_server(host, api_port, data_dir=args.data_dir, auth_provider=args.auth, static_dir=dev_static)
+        logger.info("API server running at http://%s:%d (auth: %s)", host, api_port, args.auth)
 
     if not args.api_only:
         if js_dir is not None:
@@ -191,14 +199,28 @@ def cmd_agent_kill(args: argparse.Namespace) -> int:
 
 def _add_server_args(p: argparse.ArgumentParser) -> None:
     """Add common server CLI arguments to a subparser."""
-    p.add_argument("--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)")
-    p.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
-    p.add_argument("--data-dir", default=".langley", help="Data directory (default: .langley)")
+    p.add_argument("--host", default=None, help="Server host (default: 127.0.0.1)")
+    p.add_argument("--port", type=int, default=None, help="Server port (default: 8000)")
+    p.add_argument("--data-dir", default=None, help="Data directory (default: .langley)")
+    p.add_argument("--auth", default=None, choices=["none", "local", "pam", "mac", "win32"], help="Auth provider (default: none)")
+
+
+def _apply_config_defaults(args: argparse.Namespace, cfg) -> None:
+    """Fill in unset CLI args from the config file values."""
+    if hasattr(args, "host") and args.host is None:
+        args.host = cfg.get("server", "host", fallback=DEFAULTS["server"]["host"])
+    if hasattr(args, "port") and args.port is None:
+        args.port = cfg.getint("server", "port", fallback=int(DEFAULTS["server"]["port"]))
+    if hasattr(args, "data_dir") and args.data_dir is None:
+        args.data_dir = cfg.get("server", "data_dir", fallback=DEFAULTS["server"]["data_dir"])
+    if hasattr(args, "auth") and args.auth is None:
+        args.auth = cfg.get("auth", "provider", fallback=DEFAULTS["auth"]["provider"])
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="langley", description="Langley — launcher and control plane for LLM agents")
     parser.add_argument("--version", action="version", version=f"langley {__version__}")
+    parser.add_argument("--config", default=None, metavar="PATH", help="Path to config file (default: ./langley.cfg or ~/.langley.cfg)")
     sub = parser.add_subparsers(dest="command")
 
     # langley up
@@ -244,6 +266,10 @@ def main(argv: list[str] | None = None) -> int:
     if not hasattr(args, "func"):
         # Bare `langley` → same as `langley up`
         args = parser.parse_args(["up"] + (argv if argv is not None else []))
+
+    # Load config file and fill in unset values
+    cfg = load_config(args.config)
+    _apply_config_defaults(args, cfg)
 
     return args.func(args)
 

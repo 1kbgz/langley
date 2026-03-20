@@ -1,8 +1,8 @@
-"""Tests for langley.auth (LocalAuthProvider)."""
+"""Tests for langley.auth (all providers)."""
 
 import pytest
 
-from langley.auth import LocalAuthProvider
+from langley.auth import LocalAuthProvider, NoAuthProvider, PamAuthProvider, create_auth_provider
 
 
 @pytest.fixture()
@@ -141,3 +141,87 @@ class TestLocalAuthProviderUpdateRoles:
 
     def test_update_nonexistent(self, auth):
         assert auth.update_roles("t1", "ghost", ["admin"]) is None
+
+
+class TestNoAuthProvider:
+    def test_authenticate_always_succeeds(self):
+        provider = NoAuthProvider()
+        ident = provider.authenticate("t1", "anyone", "anything")
+        assert ident is not None
+        assert ident.username == "anyone"
+        assert ident.roles == ["admin"]
+
+    def test_authorize_always_true(self):
+        provider = NoAuthProvider()
+        ident = provider.authenticate("t1", "user", "pass")
+        assert provider.authorize(ident, "admin") is True
+        assert provider.authorize(ident, "view") is True
+
+    def test_create_user_returns_identity(self):
+        provider = NoAuthProvider()
+        ident = provider.create_user("t1", "alice", "pass", roles=["viewer"])
+        assert ident.username == "alice"
+        assert ident.roles == ["viewer"]
+
+    def test_list_users_empty(self):
+        provider = NoAuthProvider()
+        assert provider.list_users("t1") == []
+
+    def test_delete_returns_false(self):
+        provider = NoAuthProvider()
+        assert provider.delete_user("t1", "alice") is False
+
+    def test_close_is_noop(self):
+        provider = NoAuthProvider()
+        provider.close()  # should not raise
+
+
+class TestPamAuthProvider:
+    def test_pam_auto_provisions_user(self, tmp_path):
+        """When OS auth succeeds, user is auto-provisioned in local store."""
+        from unittest.mock import patch
+
+        provider = PamAuthProvider(tmp_path / "pam.db")
+        with patch("langley.auth.PamAuthProvider._os_authenticate", return_value=True):
+            ident = provider.authenticate("t1", "testuser", "testpass")
+        assert ident is not None
+        assert ident.username == "testuser"
+        assert ident.roles == ["viewer"]
+        # Second auth should find existing user
+        with patch("langley.auth.PamAuthProvider._os_authenticate", return_value=True):
+            ident2 = provider.authenticate("t1", "testuser", "testpass")
+        assert ident2.user_id == ident.user_id
+        provider.close()
+
+    def test_pam_rejects_bad_credentials(self, tmp_path):
+        from unittest.mock import patch
+
+        provider = PamAuthProvider(tmp_path / "pam.db")
+        with patch("langley.auth.PamAuthProvider._os_authenticate", return_value=False):
+            ident = provider.authenticate("t1", "testuser", "bad")
+        assert ident is None
+        provider.close()
+
+
+class TestCreateAuthProviderFactory:
+    def test_none(self, tmp_path):
+        p = create_auth_provider("none", tmp_path / "auth.db")
+        assert isinstance(p, NoAuthProvider)
+
+    def test_local(self, tmp_path):
+        p = create_auth_provider("local", tmp_path / "auth.db")
+        assert isinstance(p, LocalAuthProvider)
+        p.close()
+
+    def test_pam(self, tmp_path):
+        p = create_auth_provider("pam", tmp_path / "auth.db")
+        assert isinstance(p, PamAuthProvider)
+        p.close()
+
+    def test_unknown_raises(self, tmp_path):
+        with pytest.raises(ValueError, match="Unknown auth provider"):
+            create_auth_provider("ldap", tmp_path / "auth.db")
+
+    def test_case_insensitive(self, tmp_path):
+        p = create_auth_provider("  None  ", tmp_path / "auth.db")
+        assert isinstance(p, NoAuthProvider)

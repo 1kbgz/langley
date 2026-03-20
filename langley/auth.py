@@ -1,13 +1,25 @@
-"""Auth provider interface and local file-backed implementation."""
+"""Auth provider interface and implementations.
+
+Implementations:
+  - NoAuthProvider      — no authentication (default, open access)
+  - LocalAuthProvider   — SQLite-backed with PBKDF2 password hashing
+  - PamAuthProvider     — PAM-based login via ``pamela``
+  - MacAuthProvider     — macOS OpenDirectory authentication
+  - Win32AuthProvider   — Windows domain/local authentication
+"""
 
 import abc
 import hashlib
 import json
+import logging
 import secrets
 import sqlite3
+import sys
 from pathlib import Path
 
 from langley.models import Identity
+
+logger = logging.getLogger(__name__)
 
 
 class AuthProvider(abc.ABC):
@@ -189,3 +201,175 @@ class LocalAuthProvider(AuthProvider):
 
     def close(self) -> None:
         self._conn.close()
+
+
+# ── No-auth provider (default) ────────────────────────────────
+
+
+class NoAuthProvider(AuthProvider):
+    """Open-access provider — no authentication required.
+
+    All operations succeed.  ``authenticate`` always returns an admin
+    identity.  This is the default when no auth is configured.
+    """
+
+    def create_user(self, tenant_id: str, username: str, password: str, roles: list[str] | None = None) -> Identity:
+        return Identity(user_id="anonymous", tenant_id=tenant_id, username=username, roles=roles or ["admin"])
+
+    def authenticate(self, tenant_id: str, username: str, password: str) -> Identity | None:
+        return Identity(user_id="anonymous", tenant_id=tenant_id, username=username, roles=["admin"])
+
+    def authorize(self, identity: Identity, action: str, resource: str = "*") -> bool:
+        return True
+
+    def get_user(self, tenant_id: str, username: str) -> Identity | None:
+        return Identity(user_id="anonymous", tenant_id=tenant_id, username=username, roles=["admin"])
+
+    def list_users(self, tenant_id: str) -> list[Identity]:
+        return []
+
+    def delete_user(self, tenant_id: str, username: str) -> bool:
+        return False
+
+    def update_roles(self, tenant_id: str, username: str, roles: list[str]) -> Identity | None:
+        return None
+
+    def close(self) -> None:
+        pass
+
+
+# ── OS-level auth providers ───────────────────────────────────
+
+
+class _OsAuthProvider(AuthProvider):
+    """Base class for OS-level authentication providers.
+
+    Subclasses only need to implement ``_os_authenticate`` which verifies
+    a username/password pair against the operating system.  All other
+    ``AuthProvider`` methods delegate to an inner ``LocalAuthProvider``
+    for user management (roles, listing, etc.).  On successful OS auth
+    the user is auto-provisioned in the local store if not already present.
+    """
+
+    def __init__(self, db_path: str | Path):
+        self._local = LocalAuthProvider(db_path)
+
+    @abc.abstractmethod
+    def _os_authenticate(self, username: str, password: str) -> bool:
+        """Return True if the OS accepts the credentials."""
+
+    def create_user(self, tenant_id: str, username: str, password: str, roles: list[str] | None = None) -> Identity:
+        return self._local.create_user(tenant_id, username, password, roles)
+
+    def authenticate(self, tenant_id: str, username: str, password: str) -> Identity | None:
+        if not self._os_authenticate(username, password):
+            return None
+        # Auto-provision the user locally if not yet known
+        ident = self._local.get_user(tenant_id, username)
+        if ident is None:
+            ident = self._local.create_user(tenant_id, username, password, roles=["viewer"])
+        return ident
+
+    def authorize(self, identity: Identity, action: str, resource: str = "*") -> bool:
+        return self._local.authorize(identity, action, resource)
+
+    def get_user(self, tenant_id: str, username: str) -> Identity | None:
+        return self._local.get_user(tenant_id, username)
+
+    def list_users(self, tenant_id: str) -> list[Identity]:
+        return self._local.list_users(tenant_id)
+
+    def delete_user(self, tenant_id: str, username: str) -> bool:
+        return self._local.delete_user(tenant_id, username)
+
+    def update_roles(self, tenant_id: str, username: str, roles: list[str]) -> Identity | None:
+        return self._local.update_roles(tenant_id, username, roles)
+
+    def close(self) -> None:
+        self._local.close()
+
+
+class PamAuthProvider(_OsAuthProvider):
+    """Authenticate against PAM (Linux/macOS) using the ``pamela`` library."""
+
+    def _os_authenticate(self, username: str, password: str) -> bool:
+        try:
+            import pamela  # type: ignore[import-untyped]
+        except ImportError:
+            logger.error("pamela is not installed — run `pip install pamela`")
+            return False
+        try:
+            pamela.authenticate(username, password)
+            return True
+        except pamela.PAMError:
+            return False
+
+
+class MacAuthProvider(_OsAuthProvider):
+    """Authenticate against macOS OpenDirectory via ``opendirectoryd``."""
+
+    def _os_authenticate(self, username: str, password: str) -> bool:
+        if sys.platform != "darwin":
+            logger.error("MacAuthProvider is only supported on macOS")
+            return False
+        try:
+            import subprocess  # noqa: S404
+
+            result = subprocess.run(  # noqa: S603
+                ["/usr/bin/dscl", "/Local/Default", "-authonly", username, password],
+                capture_output=True,
+            )
+            return result.returncode == 0
+        except Exception:
+            logger.exception("macOS authentication failed")
+            return False
+
+
+class Win32AuthProvider(_OsAuthProvider):
+    """Authenticate against Windows local/domain accounts via ``win32security``."""
+
+    def _os_authenticate(self, username: str, password: str) -> bool:
+        if sys.platform != "win32":
+            logger.error("Win32AuthProvider is only supported on Windows")
+            return False
+        try:
+            import win32security  # type: ignore[import-untyped]
+
+            handle = win32security.LogonUser(
+                username,
+                None,  # domain — None means local machine + trusted domains
+                password,
+                win32security.LOGON32_LOGON_NETWORK,
+                win32security.LOGON32_PROVIDER_DEFAULT,
+            )
+            handle.Close()
+            return True
+        except ImportError:
+            logger.error("pywin32 is not installed — run `pip install pywin32`")
+            return False
+        except Exception:
+            return False
+
+
+def create_auth_provider(provider: str, db_path: str | Path) -> AuthProvider:
+    """Factory: create an AuthProvider by name.
+
+    Supported values for *provider*:
+      - ``"none"``  — no authentication (open access)
+      - ``"local"`` — SQLite-backed local accounts with PBKDF2 passwords
+      - ``"pam"``   — PAM authentication (requires ``pamela``)
+      - ``"mac"``   — macOS OpenDirectory authentication
+      - ``"win32"`` — Windows local/domain authentication (requires ``pywin32``)
+    """
+    provider = provider.strip().lower()
+    if provider == "none":
+        return NoAuthProvider()
+    if provider == "local":
+        return LocalAuthProvider(db_path)
+    if provider == "pam":
+        return PamAuthProvider(db_path)
+    if provider == "mac":
+        return MacAuthProvider(db_path)
+    if provider == "win32":
+        return Win32AuthProvider(db_path)
+    raise ValueError(f"Unknown auth provider: {provider!r} (expected: none, local, pam, mac, win32)")

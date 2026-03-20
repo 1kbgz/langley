@@ -53,6 +53,9 @@ develop = [
     "ty",
     "uv",
     "wheel",
+    # auth
+    "pamela; sys_platform == 'linux'",
+    "pywin32; sys_platform == 'win32'",
 ]
 
 [project.scripts]

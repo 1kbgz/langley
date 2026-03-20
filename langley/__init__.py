@@ -2,7 +2,8 @@ __version__ = "0.1.1"
 
 from langley.agent import AgentContext, AgentSDK
 from langley.audit import AuditLog, SqliteAuditLog
-from langley.auth import AuthProvider, LocalAuthProvider
+from langley.auth import AuthProvider, LocalAuthProvider, MacAuthProvider, NoAuthProvider, PamAuthProvider, Win32AuthProvider, create_auth_provider
+from langley.config import load_config
 from langley.models import (
     AgentProfile,
     AuditEntry,
@@ -72,6 +73,12 @@ __all__ = [
     "FileMessageTransport",
     "LocalAuthProvider",
     "LocalTenantManager",
+    "MacAuthProvider",
+    "NoAuthProvider",
+    "PamAuthProvider",
     "SqliteAuditLog",
     "SqliteStateStore",
+    "Win32AuthProvider",
+    "create_auth_provider",
+    "load_config",
 ]
