@@ -38,7 +38,7 @@ class TestUpCommand:
                 with caplog.at_level("INFO", logger="langley.cli"):
                     ret = main(["up", "--port", "18765", "--data-dir", str(tmp_path)])
                 assert ret == 0
-                mock_start.assert_called_once_with("127.0.0.1", 18765, data_dir=str(tmp_path))
+                mock_start.assert_called_once_with("127.0.0.1", 18765, data_dir=str(tmp_path), auth_provider="none")
         assert "http://127.0.0.1:18765" in caplog.text
 
 
@@ -57,6 +57,7 @@ class TestDevCommand:
                         "127.0.0.1",
                         18765,
                         data_dir=str(tmp_path),
+                        auth_provider="none",
                         static_dir=Path("/fake/js/dist"),
                     )
 
@@ -184,3 +185,47 @@ class TestAgentCommands:
             ret = main(["agent", "--url", "http://remote:9000", "list"])
         assert ret == 0
         mock_req.assert_called_once_with("http://remote:9000", "GET", "/api/agents")
+
+
+class TestConfigIntegration:
+    """Config file integration with CLI."""
+
+    def test_config_file_sets_defaults(self, tmp_path, caplog):
+        """Values from config file are used when CLI flags are absent."""
+        cfg_path = tmp_path / "test.cfg"
+        cfg_path.write_text("[server]\nhost = 0.0.0.0\nport = 9999\n[auth]\nprovider = local\n")
+
+        import langley.cli as cli_mod
+
+        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
+            with patch.object(cli_mod, "signal") as mock_signal:
+                mock_signal.pause.side_effect = KeyboardInterrupt
+                with caplog.at_level("INFO", logger="langley.cli"):
+                    ret = main(["--config", str(cfg_path), "up", "--data-dir", str(tmp_path)])
+        assert ret == 0
+        mock_start.assert_called_once_with("0.0.0.0", 9999, data_dir=str(tmp_path), auth_provider="local")
+
+    def test_cli_flags_override_config(self, tmp_path, caplog):
+        """CLI flags take precedence over config file values."""
+        cfg_path = tmp_path / "test.cfg"
+        cfg_path.write_text("[server]\nport = 9999\n[auth]\nprovider = pam\n")
+
+        import langley.cli as cli_mod
+
+        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
+            with patch.object(cli_mod, "signal") as mock_signal:
+                mock_signal.pause.side_effect = KeyboardInterrupt
+                ret = main(["--config", str(cfg_path), "up", "--port", "7777", "--auth", "none", "--data-dir", str(tmp_path)])
+        assert ret == 0
+        mock_start.assert_called_once_with("127.0.0.1", 7777, data_dir=str(tmp_path), auth_provider="none")
+
+    def test_auth_flag_without_config(self, tmp_path, caplog):
+        """--auth flag works without a config file."""
+        import langley.cli as cli_mod
+
+        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
+            with patch.object(cli_mod, "signal") as mock_signal:
+                mock_signal.pause.side_effect = KeyboardInterrupt
+                ret = main(["up", "--auth", "local", "--data-dir", str(tmp_path)])
+        assert ret == 0
+        mock_start.assert_called_once_with("127.0.0.1", 8000, data_dir=str(tmp_path), auth_provider="local")

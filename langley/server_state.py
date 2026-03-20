@@ -6,7 +6,7 @@ Creates all core services once and shares them across request handlers.
 from pathlib import Path
 
 from langley.audit import AuditLog, SqliteAuditLog
-from langley.auth import AuthProvider, LocalAuthProvider
+from langley.auth import AuthProvider, create_auth_provider
 from langley.profile import ProfileStore, SqliteProfileStore
 from langley.router import MessageRouter
 from langley.store import SqliteStateStore, StateStore
@@ -46,8 +46,12 @@ class ServerState:
         self.static_dir = static_dir
 
     @classmethod
-    def create_default(cls, data_dir: str = ".langley") -> "ServerState":
-        """Build a ServerState with the built-in SQLite/file implementations."""
+    def create_default(cls, data_dir: str = ".langley", auth_provider: str = "none") -> "ServerState":
+        """Build a ServerState with the built-in SQLite/file implementations.
+
+        *auth_provider* is one of ``"none"``, ``"local"``, ``"pam"``,
+        ``"mac"``, or ``"win32"``.
+        """
         base = Path(data_dir)
         base.mkdir(parents=True, exist_ok=True)
         db = str(base / "langley.db")
@@ -55,7 +59,7 @@ class ServerState:
         transport = FileMessageTransport(base / "transport")
         state_store = SqliteStateStore(db)
         audit_log = SqliteAuditLog(db)
-        auth_provider = LocalAuthProvider(db)
+        auth = create_auth_provider(auth_provider, db)
         tenant_manager = LocalTenantManager(db)
         profile_store = SqliteProfileStore(db)
         router = MessageRouter(transport)
@@ -73,7 +77,7 @@ class ServerState:
             transport=transport,
             state_store=state_store,
             audit_log=audit_log,
-            auth_provider=auth_provider,
+            auth_provider=auth,
             tenant_manager=tenant_manager,
             profile_store=profile_store,
             router=router,
