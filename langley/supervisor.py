@@ -3,6 +3,7 @@
 import enum
 import logging
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -203,6 +204,7 @@ class AgentProcessManager:
                 env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                start_new_session=True,
             )
         except (OSError, FileNotFoundError) as e:
             with self._lock:
@@ -236,10 +238,10 @@ class AgentProcessManager:
             info.status = AgentStatus.STOPPING
 
         if force:
-            proc.kill()
+            self._kill_process_group(proc)
             self._audit(info, "agent.killed")
         else:
-            proc.terminate()
+            self._terminate_process_group(proc)
             self._audit(info, "agent.stop_requested")
 
             # Start a watchdog thread for graceful shutdown timeout
@@ -251,6 +253,22 @@ class AgentProcessManager:
 
         return True
 
+    @staticmethod
+    def _terminate_process_group(proc: subprocess.Popen) -> None:
+        """Send SIGTERM to the child's process group."""
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            proc.terminate()
+
+    @staticmethod
+    def _kill_process_group(proc: subprocess.Popen) -> None:
+        """Send SIGKILL to the child's process group."""
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            proc.kill()
+
     def _graceful_shutdown_watchdog(
         self,
         proc: subprocess.Popen,
@@ -260,7 +278,7 @@ class AgentProcessManager:
         try:
             proc.wait(timeout=self._graceful_shutdown_timeout)
         except subprocess.TimeoutExpired:
-            proc.kill()
+            self._kill_process_group(proc)
             self._audit(info, "agent.force_killed_after_timeout")
 
     def restart(self, agent_id: str) -> AgentInfo | None:
@@ -429,9 +447,9 @@ class AgentProcessManager:
         with self._lock:
             for agent_id, proc in list(self._processes.items()):
                 if proc.poll() is None:
-                    proc.terminate()
+                    self._terminate_process_group(proc)
                     try:
                         proc.wait(timeout=self._graceful_shutdown_timeout)
                     except subprocess.TimeoutExpired:
-                        proc.kill()
+                        self._kill_process_group(proc)
                         proc.wait(timeout=5)
