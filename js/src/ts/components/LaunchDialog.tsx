@@ -39,7 +39,6 @@ export function LaunchDialog({
   // New profile form state
   const [showNewProfile, setShowNewProfile] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newTenant, setNewTenant] = useState("default");
   const [newProvider, setNewProvider] = useState("");
   const [newModel, setNewModel] = useState("");
   const [newSystemPrompt, setNewSystemPrompt] = useState("");
@@ -85,7 +84,7 @@ export function LaunchDialog({
       const parts = newCommand ? newCommand.split(/\s+/).filter(Boolean) : [];
       const profile = await createProfile({
         name: newName,
-        tenant_id: newTenant,
+        tenant_id: "default",
         command: parts,
         llm_provider: newProvider === "custom" ? "" : newProvider,
         model: newModel,
@@ -185,15 +184,6 @@ export function LaunchDialog({
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="my-agent"
                 data-testid="np-name"
-              />
-
-              <label htmlFor="np-tenant">Tenant ID</label>
-              <input
-                id="np-tenant"
-                type="text"
-                value={newTenant}
-                onChange={(e) => setNewTenant(e.target.value)}
-                data-testid="np-tenant"
               />
 
               <label htmlFor="np-provider">Provider</label>

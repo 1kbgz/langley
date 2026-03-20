@@ -9,8 +9,14 @@ import {
   saveAgentToDisk,
   generateAgentProfile,
   listAgents,
+  fetchProviders,
 } from "../api.ts";
-import type { ProfileInfo, PreconfiguredAgent, AgentInfo } from "../api.ts";
+import type {
+  ProfileInfo,
+  PreconfiguredAgent,
+  AgentInfo,
+  ProviderInfo,
+} from "../api.ts";
 
 export function ProfilesTab() {
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
@@ -20,6 +26,14 @@ export function ProfilesTab() {
   const [loading, setLoading] = useState(true);
   const [runningAgents, setRunningAgents] = useState<AgentInfo[]>([]);
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+  const [showNewProfile, setShowNewProfile] = useState(false);
+  const [providers, setProviders] = useState<ProviderInfo[]>([]);
+  const [newName, setNewName] = useState("");
+  const [newProvider, setNewProvider] = useState("");
+  const [newModel, setNewModel] = useState("");
+  const [newSystemPrompt, setNewSystemPrompt] = useState("");
+  const [newCommand, setNewCommand] = useState("");
+  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [rawEditing, setRawEditing] = useState(false);
   const [rawContent, setRawContent] = useState("");
@@ -50,6 +64,9 @@ export function ProfilesTab() {
 
   useEffect(() => {
     refresh();
+    fetchProviders()
+      .then(setProviders)
+      .catch(() => {});
   }, [refresh]);
 
   const handleDelete = async (id: string) => {
@@ -59,6 +76,44 @@ export function ProfilesTab() {
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete profile");
+    }
+  };
+
+  const providerOptions = [
+    { value: "", label: "-- Select provider --" },
+    ...providers.map((p) => ({ value: p.id, label: p.name })),
+    { value: "custom", label: "Custom Command" },
+  ];
+  const selectedProviderInfo = providers.find((p) => p.id === newProvider);
+  const providerModels = selectedProviderInfo?.models ?? [];
+  const isLLMProvider = newProvider && newProvider !== "custom";
+
+  const handleCreateNew = async () => {
+    if (!newName) return;
+    if (!isLLMProvider && !newCommand) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const parts = newCommand ? newCommand.split(/\s+/).filter(Boolean) : [];
+      await createProfile({
+        name: newName,
+        tenant_id: "default",
+        command: parts,
+        llm_provider: newProvider === "custom" ? "" : newProvider,
+        model: newModel,
+        system_prompt: newSystemPrompt,
+      });
+      setShowNewProfile(false);
+      setNewName("");
+      setNewProvider("");
+      setNewModel("");
+      setNewSystemPrompt("");
+      setNewCommand("");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create profile");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -227,7 +282,126 @@ export function ProfilesTab() {
       <div className="langley-profiles-layout">
         {/* Profile list */}
         <div className="langley-profiles-list">
-          <h2>Saved Profiles</h2>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <h2>Saved Profiles</h2>
+            <button
+              className="langley-btn langley-btn-primary"
+              onClick={() => setShowNewProfile(!showNewProfile)}
+              data-testid="new-profile-btn"
+            >
+              + New Profile
+            </button>
+          </div>
+
+          {showNewProfile && (
+            <div
+              className="langley-new-profile"
+              data-testid="profiles-new-form"
+              style={{ marginBottom: 16 }}
+            >
+              <label htmlFor="pnp-name">Name</label>
+              <input
+                id="pnp-name"
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="my-agent"
+                data-testid="pnp-name"
+              />
+
+              <label htmlFor="pnp-provider">Provider</label>
+              <select
+                id="pnp-provider"
+                value={newProvider}
+                onChange={(e) => {
+                  setNewProvider(e.target.value);
+                  setNewModel("");
+                }}
+                data-testid="pnp-provider"
+              >
+                {providerOptions.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+
+              {isLLMProvider && (
+                <>
+                  <label htmlFor="pnp-model">Model</label>
+                  <input
+                    id="pnp-model"
+                    type="text"
+                    list="pnp-model-suggestions"
+                    value={newModel}
+                    onChange={(e) => setNewModel(e.target.value)}
+                    placeholder="Type or select a model…"
+                    data-testid="pnp-model"
+                    autoComplete="off"
+                  />
+                  {providerModels.length > 0 && (
+                    <datalist id="pnp-model-suggestions">
+                      {providerModels.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </datalist>
+                  )}
+                </>
+              )}
+
+              {(!newProvider || newProvider === "custom") && (
+                <>
+                  <label htmlFor="pnp-command">Command</label>
+                  <input
+                    id="pnp-command"
+                    type="text"
+                    value={newCommand}
+                    onChange={(e) => setNewCommand(e.target.value)}
+                    placeholder="python agent.py"
+                    data-testid="pnp-command"
+                  />
+                </>
+              )}
+
+              <label htmlFor="pnp-prompt">Instructions</label>
+              <textarea
+                id="pnp-prompt"
+                value={newSystemPrompt}
+                onChange={(e) => setNewSystemPrompt(e.target.value)}
+                placeholder="Describe what this agent should do..."
+                rows={4}
+                data-testid="pnp-prompt"
+              />
+
+              <div className="langley-actions" style={{ marginTop: 8 }}>
+                <button
+                  className="langley-btn langley-btn-primary"
+                  onClick={handleCreateNew}
+                  disabled={
+                    creating || !newName || (!isLLMProvider && !newCommand)
+                  }
+                  data-testid="pnp-create"
+                >
+                  {creating ? "Creating..." : "Create Profile"}
+                </button>
+                <button
+                  className="langley-btn"
+                  onClick={() => setShowNewProfile(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <p className="langley-empty">Loading...</p>
           ) : profiles.length === 0 ? (
