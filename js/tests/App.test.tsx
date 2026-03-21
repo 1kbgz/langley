@@ -157,7 +157,7 @@ describe("App", () => {
     await act(async () => {
       render(<App />);
     });
-    expect(screen.getByText("Langley")).toBeInTheDocument();
+    expect(screen.getByText("hq")).toBeInTheDocument();
   });
 
   test("shows disconnected status by default", async () => {
