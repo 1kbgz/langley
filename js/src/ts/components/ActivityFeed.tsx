@@ -1,4 +1,3 @@
-import { useRef, useEffect } from "react";
 import type { AuditEntryInfo } from "../api.ts";
 
 function formatTime(ts: number): string {
@@ -7,14 +6,6 @@ function formatTime(ts: number): string {
 }
 
 export function ActivityFeed({ events }: { events: AuditEntryInfo[] }) {
-  const listRef = useRef<HTMLUListElement>(null);
-
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [events]);
-
   if (events.length === 0) {
     return (
       <p className="langley-empty" data-testid="no-activity">
@@ -25,7 +16,7 @@ export function ActivityFeed({ events }: { events: AuditEntryInfo[] }) {
   return (
     <div className="langley-activity-feed" data-testid="activity-feed">
       <h2>Activity</h2>
-      <ul className="langley-activity-list" ref={listRef}>
+      <ul className="langley-activity-list">
         {events.map((ev) => (
           <li
             key={ev.id}

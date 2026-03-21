@@ -1099,6 +1099,7 @@ textarea {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .langley-logs-controls {
@@ -1683,21 +1684,32 @@ textarea {
 // ── Message Inspector ──────────────────────────────────────
 
 .langley-message-inspector {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .langley-message-inspector-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: 16px;
-  min-height: 500px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .langley-channel-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+
   h3 {
     margin: 0 0 8px;
     font-size: 14px;
     font-weight: 600;
+    flex-shrink: 0;
   }
 }
 
@@ -1708,6 +1720,9 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
 }
 
 .langley-channel-item {
@@ -1750,6 +1765,11 @@ textarea {
 }
 
 .langley-channel-detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+
   h3 {
     margin: 0;
     font-size: 14px;
@@ -1764,10 +1784,12 @@ textarea {
   gap: 12px;
   margin-bottom: 12px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .langley-message-stream {
-  max-height: 500px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 

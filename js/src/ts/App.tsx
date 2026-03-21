@@ -75,6 +75,24 @@ export function extractPanelNames(layout: unknown): Set<string> {
   return names;
 }
 
+/** Walk layout tree and set `selected` so the named panel is the active tab. */
+export function selectPanelInLayout(layout: unknown, name: string): boolean {
+  if (!layout || typeof layout !== "object") return false;
+  const n = layout as Record<string, unknown>;
+  if (n.type === "child-panel" && Array.isArray(n.child)) {
+    const idx = (n.child as string[]).indexOf(name);
+    if (idx >= 0) {
+      n.selected = idx;
+      return true;
+    }
+  } else if (n.type === "split-panel" && Array.isArray(n.children)) {
+    for (const c of n.children) {
+      if (selectPanelInLayout(c, name)) return true;
+    }
+  }
+  return false;
+}
+
 /** AgentInspector is special — it needs a param and opens on top of everything. */
 interface InspectorState {
   agentId: string;
@@ -301,7 +319,14 @@ export function App() {
     (agentId: string) => {
       setChatInitialAgent(agentId);
       const el = layoutRef.current;
-      if (el && !activePanels.has("chat")) {
+      if (!el) return;
+      if (activePanels.has("chat")) {
+        // Panel exists — foreground it if it's behind another tab
+        const tree = el.save();
+        if (tree && selectPanelInLayout(tree, "chat")) {
+          el.restore(tree);
+        }
+      } else {
         el.insertPanel("chat");
       }
     },
@@ -331,7 +356,7 @@ export function App() {
   return (
     <div className="langley-app" data-testid="langley-app">
       <header className="langley-header">
-        <h1>Langley</h1>
+        <h1>hq</h1>
         <nav className="langley-nav" data-testid="tab-nav">
           {PANEL_LABELS.map(({ id, label }) => (
             <button
