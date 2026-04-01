@@ -21,8 +21,8 @@ importers:
         specifier: ^19.1.0
         version: 19.2.4(react@19.2.4)
       regular-layout:
-        specifier: ^0.2.1
-        version: 0.2.1
+        specifier: ^0.4.0
+        version: 0.4.0
     devDependencies:
       '@testing-library/dom':
         specifier: ^10.4.0
@@ -1381,8 +1381,8 @@ packages:
     resolution: {integrity: sha512-dYqgNSZbDwkaJ2ceRd9ojCGjBq+mOm9LmtXnAnEGyHhN/5R7iDW2TRw3h+o/jCFxus3P2LfWIIiwowAjANm7IA==}
     engines: {node: '>= 0.4'}
 
-  regular-layout@0.2.1:
-    resolution: {integrity: sha512-Hdh4Wo+WWrrq53WhzVYgW2BIeNndwmDirYi1cFzitJpXNP7zHOqUYB3nAKvFKpum9HjnsAWkW1j7AYQ32xmpTA==}
+  regular-layout@0.4.0:
+    resolution: {integrity: sha512-WM54Mp4LVtqjdlZai838usXyX0FRzlMg+2h4Mjj109TMOJxUr+uOYRNK4foQ2xcy0w2/SlbFUGQiVZVjMYlORA==}
 
   require-from-string@2.0.2:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
@@ -3093,7 +3093,7 @@ snapshots:
       gopd: 1.2.0
       set-function-name: 2.0.2
 
-  regular-layout@0.2.1: {}
+  regular-layout@0.4.0: {}
 
   require-from-string@2.0.2: {}
 

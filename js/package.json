@@ -44,7 +44,7 @@
     "marked": "^17.0.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "regular-layout": "^0.2.1"
+    "regular-layout": "^0.4.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
