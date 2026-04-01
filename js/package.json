@@ -40,7 +40,7 @@
     "watch": "nodemon --watch src -e ts,tsx,less,html --exec \"pnpm build:debug\""
   },
   "dependencies": {
-    "dompurify": "^3.3.2",
+    "dompurify": "^3.3.3",
     "marked": "^17.0.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
