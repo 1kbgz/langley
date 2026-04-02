@@ -101,15 +101,17 @@ vi.mock("../src/ts/api.ts", () => ({
 
 // Mock the ws module so the app doesn't create real WebSocket connections
 vi.mock("../src/ts/ws.ts", () => {
+  class MockLangleyWsClient {
+    connect = vi.fn();
+    disconnect = vi.fn();
+    subscribe = vi.fn().mockReturnValue(vi.fn());
+    onConnect: (() => void) | null = null;
+    onDisconnect: (() => void) | null = null;
+    onError: ((message: string) => void) | null = null;
+  }
+
   return {
-    LangleyWsClient: vi.fn().mockImplementation(() => ({
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      subscribe: vi.fn().mockReturnValue(vi.fn()),
-      onConnect: null,
-      onDisconnect: null,
-      onError: null,
-    })),
+    LangleyWsClient: MockLangleyWsClient,
   };
 });
 
@@ -145,7 +147,7 @@ beforeEach(() => {
   // jsdom doesn't implement scrollIntoView
   Element.prototype.scrollIntoView = vi.fn();
   // Clear persisted layout so tests start fresh
-  localStorage.removeItem("langley-layout");
+  window.localStorage.removeItem("langley-layout");
 });
 
 afterEach(() => {
@@ -685,7 +687,7 @@ describe("Layout handler (insertPanel recursion guard)", () => {
       sizes: [0.5, 0.5],
       orientation: "horizontal",
     });
-    localStorage.setItem("langley-layout", savedLayout);
+    window.localStorage.setItem("langley-layout", savedLayout);
 
     // This should not throw or hang — if extractPanelNames is broken,
     // restore → event → insertPanel("status") → restore → ... would blow up
