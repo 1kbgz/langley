@@ -1,11 +1,5 @@
-<<<<<<< before updating
 import * as esbuild from "esbuild";
-import { lessLoader } from "esbuild-plugin-less";
-=======
-import { NodeModulesExternal } from "@finos/perspective-esbuild-plugin/external.js";
-import { build } from "@finos/perspective-esbuild-plugin/build.js";
 import { transform } from "lightningcss";
->>>>>>> after updating
 import { getarg } from "./tools/getarg.mjs";
 import fs from "fs";
 import cpy from "cpy";
@@ -21,7 +15,6 @@ const BUILD = [
   {
     define: COMMON_DEFINE,
     entryPoints: ["src/ts/index.tsx"],
-    plugins: [lessLoader()],
     packages: "external",
     format: "esm",
     jsx: "automatic",
@@ -34,7 +27,6 @@ const BUILD = [
   {
     define: COMMON_DEFINE,
     entryPoints: ["src/ts/index.tsx"],
-    plugins: [lessLoader()],
     format: "esm",
     jsx: "automatic",
     bundle: true,
@@ -45,19 +37,14 @@ const BUILD = [
   },
 ];
 
-<<<<<<< before updating
-=======
 async function compile_css() {
-  const process_path = (path) => {
-    const outpath = path.replace("src/css", "dist/css");
-    fs.mkdirSync(outpath, { recursive: true });
-
-    fs.readdirSync(path, { withFileTypes: true }).forEach((entry) => {
-      const input = `${path}/${entry.name}`;
-      const output = `${outpath}/${entry.name}`;
-
+  const process_path = (src_path, out_path) => {
+    fs.mkdirSync(out_path, { recursive: true });
+    fs.readdirSync(src_path, { withFileTypes: true }).forEach((entry) => {
+      const input = `${src_path}/${entry.name}`;
+      const output = `${out_path}/${entry.name}`;
       if (entry.isDirectory()) {
-        process_path(input);
+        process_path(input, output);
       } else if (entry.isFile() && entry.name.endsWith(".css")) {
         const source = fs.readFileSync(input);
         const { code } = transform({
@@ -70,11 +57,10 @@ async function compile_css() {
       }
     });
   };
-
-  process_path("src/css");
+  process_path("src/css", "dist/cdn");
+  process_path("src/css", "dist/esm");
 }
 
->>>>>>> after updating
 async function copy_html() {
   fs.mkdirSync("dist/html", { recursive: true });
   cpy("src/html/*", "dist/html");
@@ -88,6 +74,7 @@ async function copy_to_python() {
 
 async function build_all() {
   await copy_html();
+  await compile_css();
   await Promise.all(BUILD.map((c) => esbuild.build(c))).catch(() =>
     process.exit(1),
   );
