@@ -1,6 +1,4 @@
-// Langley dashboard styles
-// Dark/light theme with CSS custom properties
-
+/* src/css/index.css */
 :root,
 [data-theme="dark"] {
   --bg-primary: #0f1117;
@@ -24,7 +22,6 @@
     Arial, sans-serif;
   --font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
 }
-
 [data-theme="light"] {
   --bg-primary: #f5f6fa;
   --bg-secondary: #ffffff;
@@ -41,7 +38,6 @@
   --yellow: #d97706;
   --gray: #64748b;
 }
-
 *,
 *::before,
 *::after {
@@ -49,7 +45,6 @@
   margin: 0;
   padding: 0;
 }
-
 html,
 body {
   font-family: var(--font);
@@ -60,17 +55,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-// ── App shell ──────────────────────────────────────────────
-
 .langley-app {
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
-
-// ── Header ─────────────────────────────────────────────────
-
 .langley-header {
   display: flex;
   align-items: center;
@@ -79,25 +68,20 @@ body {
   height: 52px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-
-  h1 {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--text-primary);
-    margin-right: 8px;
-    flex-shrink: 0;
-  }
 }
-
-// ── Tab navigation ─────────────────────────────────────────
-
+.langley-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin-right: 8px;
+  flex-shrink: 0;
+}
 .langley-nav {
   display: flex;
   gap: 2px;
   flex: 1;
 }
-
 .langley-nav-tab {
   display: inline-flex;
   align-items: center;
@@ -112,31 +96,26 @@ body {
   cursor: pointer;
   font-family: var(--font);
   transition: all 0.15s;
-
-  &:hover {
-    color: var(--text-primary);
-    background: var(--bg-hover);
-  }
-
-  &.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-  }
 }
-
+.langley-nav-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.langley-nav-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
 .langley-header-right {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
 }
-
 .langley-theme-toggle {
   font-size: 16px;
   padding: 4px 8px;
   line-height: 1;
 }
-
 .langley-connection-status {
   display: inline-flex;
   align-items: center;
@@ -144,23 +123,18 @@ body {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
-
-  &::before {
-    content: "";
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--red);
-  }
-
-  &.connected::before {
-    background: var(--green);
-  }
 }
-
-// ── Main content ───────────────────────────────────────────
-
+.langley-connection-status::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.langley-connection-status.connected::before {
+  background: var(--green);
+}
 .langley-main {
   flex: 1;
   position: relative;
@@ -168,16 +142,12 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
-
-// ── regular-layout integration ─────────────────────────────
-
 regular-layout {
   flex: 1;
   min-height: 0;
   position: relative;
   padding: 4px;
 }
-
 regular-layout-frame {
   flex-direction: column;
   overflow: hidden;
@@ -189,8 +159,6 @@ regular-layout-frame {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-
-// Drag overlay: visible drop preview
 regular-layout-frame.overlay {
   background: var(--accent);
   opacity: 0.18;
@@ -203,13 +171,10 @@ regular-layout-frame.overlay {
     width 0.075s ease-out,
     height 0.075s ease-out;
 }
-
-// Hide content inside the dragged overlay ghost
 regular-layout-frame.overlay::part(container),
 regular-layout-frame.overlay::part(titlebar) {
   display: none;
 }
-
 regular-layout-frame::part(titlebar) {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
@@ -220,7 +185,6 @@ regular-layout-frame::part(titlebar) {
   display: flex;
   align-items: stretch;
 }
-
 regular-layout-frame::part(tab) {
   display: flex;
   flex: 1 1 150px;
@@ -236,17 +200,13 @@ regular-layout-frame::part(tab) {
   overflow: hidden;
   white-space: nowrap;
 }
-
 regular-layout-frame::part(active-tab) {
   color: var(--accent);
   border-bottom: 2px solid var(--accent);
 }
-
-// Close button: hidden on inactive tabs, visible on active tab hover
 regular-layout-frame::part(close) {
   display: none;
 }
-
 regular-layout-frame::part(active-close) {
   display: flex;
   align-items: center;
@@ -265,18 +225,15 @@ regular-layout-frame::part(active-close) {
     color 0.15s,
     background 0.15s;
 }
-
 regular-layout-frame::part(active-close):before {
-  content: "\00d7";
+  content: "\d7";
   font-size: 14px;
   font-weight: 600;
 }
-
 regular-layout-frame::part(active-close):hover {
   color: var(--red);
   background: rgba(239, 68, 68, 0.1);
 }
-
 regular-layout-frame::part(title) {
   font-size: 12px;
   font-weight: 500;
@@ -286,25 +243,18 @@ regular-layout-frame::part(title) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 regular-layout-frame::part(container) {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   padding: 16px 20px;
 }
-
-// Drag overlay styling
 regular-layout:has(.overlay) > * {
   opacity: 0.7;
 }
-
 regular-layout:has(.overlay) > .overlay {
   opacity: 0.5;
 }
-
-// ── Agent inspector overlay (modal) ────────────────────────
-
 .langley-overlay-inspector {
   position: absolute;
   inset: 0;
@@ -315,7 +265,6 @@ regular-layout:has(.overlay) > .overlay {
   border-radius: var(--radius);
   overflow: hidden;
 }
-
 .langley-overlay-header {
   display: flex;
   align-items: center;
@@ -325,27 +274,21 @@ regular-layout:has(.overlay) > .overlay {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-
 .langley-overlay-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
-
 .langley-overlay-close {
   font-size: 16px;
   line-height: 1;
   padding: 2px 8px;
 }
-
 .langley-overlay-body {
   flex: 1;
   overflow: auto;
   padding: 24px 28px;
 }
-
-// ── Error banner ───────────────────────────────────────────
-
 .langley-error {
   padding: 10px 16px;
   margin-bottom: 20px;
@@ -355,28 +298,22 @@ regular-layout:has(.overlay) > .overlay {
   color: #fca5a5;
   font-size: 13px;
 }
-
-// ── Summary cards ──────────────────────────────────────────
-
 .langley-summary-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
-
 .langley-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px 20px;
   transition: border-color 0.15s;
-
-  &:hover {
-    border-color: var(--accent);
-  }
 }
-
+.langley-card:hover {
+  border-color: var(--accent);
+}
 .langley-card-value {
   font-size: 28px;
   font-weight: 700;
@@ -384,7 +321,6 @@ regular-layout:has(.overlay) > .overlay {
   color: var(--text-primary);
   line-height: 1.1;
 }
-
 .langley-card-label {
   font-size: 12px;
   font-weight: 500;
@@ -393,8 +329,6 @@ regular-layout:has(.overlay) > .overlay {
   color: var(--text-secondary);
   margin-top: 4px;
 }
-
-// Card accent colors
 .langley-card[data-testid="card-running"] .langley-card-value {
   color: var(--green);
 }
@@ -404,43 +338,34 @@ regular-layout:has(.overlay) > .overlay {
 .langley-card[data-testid="card-pending"] .langley-card-value {
   color: var(--yellow);
 }
-
-// ── Controls bar ───────────────────────────────────────────
-
 .langley-controls {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 16px;
-
-  label {
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
-
-  select {
-    appearance: none;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    padding: 6px 28px 6px 10px;
-    font-size: 13px;
-    font-family: var(--font);
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238b8fa3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-  }
 }
-
-// ── Agent table ────────────────────────────────────────────
-
+.langley-controls label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.langley-controls select {
+  appearance: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 6px 28px 6px 10px;
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238b8fa3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.langley-controls select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 .langley-agent-table {
   width: 100%;
   border-collapse: separate;
@@ -449,44 +374,35 @@ regular-layout:has(.overlay) > .overlay {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-
-  th,
-  td {
-    padding: 10px 16px;
-    text-align: left;
-  }
-
-  thead th {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-  }
-
-  tbody tr {
-    transition: background 0.1s;
-
-    &:hover {
-      background: var(--bg-hover);
-    }
-
-    &:not(:last-child) td {
-      border-bottom: 1px solid var(--border);
-    }
-  }
-
-  td {
-    font-size: 13px;
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-  }
 }
-
-// ── Status badge ───────────────────────────────────────────
-
+.langley-agent-table th,
+.langley-agent-table td {
+  padding: 10px 16px;
+  text-align: left;
+}
+.langley-agent-table thead th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.langley-agent-table tbody tr {
+  transition: background 0.1s;
+}
+.langley-agent-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+.langley-agent-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+.langley-agent-table td {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
 .langley-status-badge {
   display: inline-block;
   width: 8px;
@@ -495,14 +411,10 @@ regular-layout:has(.overlay) > .overlay {
   margin-right: 6px;
   vertical-align: middle;
 }
-
-// ── Action buttons ─────────────────────────────────────────
-
 .langley-actions {
   display: flex;
   gap: 6px;
 }
-
 .langley-btn {
   display: inline-flex;
   align-items: center;
@@ -518,22 +430,17 @@ regular-layout:has(.overlay) > .overlay {
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
-
-  &:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-    border-color: var(--text-muted);
-  }
-
-  &.langley-btn-danger:hover {
-    background: rgba(239, 68, 68, 0.12);
-    color: #fca5a5;
-    border-color: rgba(239, 68, 68, 0.3);
-  }
 }
-
-// ── Empty state ────────────────────────────────────────────
-
+.langley-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+.langley-btn.langley-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
 .langley-empty {
   text-align: center;
   padding: 48px 20px;
@@ -543,22 +450,17 @@ regular-layout:has(.overlay) > .overlay {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-
-// ── Activity feed ──────────────────────────────────────────
-
 .langley-activity-feed {
   margin-top: 20px;
-
-  h2 {
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-  }
 }
-
+.langley-activity-feed h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
 .langley-activity-list {
   list-style: none;
   padding: 0;
@@ -566,7 +468,6 @@ regular-layout:has(.overlay) > .overlay {
   max-height: 320px;
   overflow-y: auto;
 }
-
 .langley-activity-item {
   display: flex;
   align-items: center;
@@ -578,18 +479,15 @@ regular-layout:has(.overlay) > .overlay {
   margin-bottom: 6px;
   font-size: 12px;
   transition: border-color 0.15s;
-
-  &:hover {
-    border-color: var(--accent);
-  }
 }
-
+.langley-activity-item:hover {
+  border-color: var(--accent);
+}
 .langley-activity-type {
   font-weight: 600;
   color: var(--accent);
   flex-shrink: 0;
 }
-
 .langley-activity-agent {
   color: var(--text-secondary);
   font-family: var(--font-mono);
@@ -599,34 +497,25 @@ regular-layout:has(.overlay) > .overlay {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .langley-activity-time {
   color: var(--text-muted);
   font-size: 11px;
   flex-shrink: 0;
 }
-
-// ── Primary button variant ─────────────────────────────────
-
 .langley-btn-primary {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
-
-  &:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
-    color: #fff;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
-
-// ── Dialog overlay ─────────────────────────────────────────
-
+.langley-btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+.langley-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .langley-dialog-overlay {
   position: fixed;
   inset: 0;
@@ -636,7 +525,6 @@ regular-layout:has(.overlay) > .overlay {
   justify-content: center;
   z-index: 100;
 }
-
 .langley-dialog {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -647,42 +535,34 @@ regular-layout:has(.overlay) > .overlay {
   overflow-y: auto;
   padding: 24px;
 }
-
 .langley-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
-
-  h2 {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-  }
 }
-
+.langley-dialog-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
 .langley-dialog-section {
   margin-bottom: 16px;
-
-  label {
-    display: block;
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-  }
-
-  select,
-  input[type="text"],
-  textarea {
-    display: block;
-    width: 100%;
-    margin-bottom: 10px;
-  }
 }
-
-// ── Form inputs ────────────────────────────────────────────
-
+.langley-dialog-section label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.langley-dialog-section select,
+.langley-dialog-section input[type="text"],
+.langley-dialog-section textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+}
 input[type="text"],
 textarea {
   appearance: none;
@@ -693,85 +573,70 @@ textarea {
   padding: 8px 10px;
   font-size: 13px;
   font-family: var(--font);
-
-  &::placeholder {
-    color: var(--text-muted);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
 }
-
+input[type="text"]::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+input[type="text"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 textarea {
   resize: vertical;
   min-height: 60px;
   line-height: 1.5;
   width: 100%;
 }
-
-// ── New profile form ───────────────────────────────────────
-
-.langley-new-profile {
-  h3 {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 12px;
-  }
-
-  label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-  }
-
-  input,
-  select,
-  textarea {
-    margin-bottom: 10px;
-    display: block;
-    width: 100%;
-  }
-
-  select {
-    appearance: none;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    padding: 8px 10px;
-    font-size: 13px;
-    font-family: var(--font);
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238b8fa3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    padding-right: 28px;
-
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-  }
-
-  .langley-model-cost {
-    display: block;
-    font-size: 11px;
-    color: var(--text-muted, var(--text-secondary));
-    margin-top: -6px;
-    margin-bottom: 10px;
-  }
-
-  .langley-actions {
-    margin-top: 12px;
-  }
+.langley-new-profile h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
 }
-
-// ── Chat Panel ─────────────────────────────────────────────
-
+.langley-new-profile label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.langley-new-profile input,
+.langley-new-profile select,
+.langley-new-profile textarea {
+  margin-bottom: 10px;
+  display: block;
+  width: 100%;
+}
+.langley-new-profile select {
+  appearance: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238b8fa3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+}
+.langley-new-profile select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.langley-new-profile .langley-model-cost {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted, var(--text-secondary));
+  margin-top: -6px;
+  margin-bottom: 10px;
+}
+.langley-new-profile .langley-actions {
+  margin-top: 12px;
+}
 .langley-chat-panel {
   display: flex;
   flex-direction: column;
@@ -782,7 +647,6 @@ textarea {
   border: 1px solid var(--border);
   overflow: hidden;
 }
-
 .langley-chat-header {
   display: flex;
   justify-content: space-between;
@@ -790,14 +654,12 @@ textarea {
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-card);
-
-  h3 {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
 }
-
+.langley-chat-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
 .langley-chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -806,42 +668,36 @@ textarea {
   flex-direction: column;
   gap: 8px;
 }
-
 .langley-chat-message {
   padding: 8px 12px;
   border-radius: var(--radius);
   max-width: 85%;
-
-  &.langley-chat-user {
-    align-self: flex-end;
-    background: var(--accent);
-    color: #fff;
-  }
-
-  &.langley-chat-assistant {
-    align-self: flex-start;
-    background: var(--bg-card);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-  }
-
-  &.langley-chat-system {
-    align-self: center;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 12px;
-    font-style: italic;
-    padding: 4px 8px;
-  }
 }
-
+.langley-chat-message.langley-chat-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+}
+.langley-chat-message.langley-chat-assistant {
+  align-self: flex-start;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.langley-chat-message.langley-chat-system {
+  align-self: center;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+  padding: 4px 8px;
+}
 .langley-chat-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 2px;
 }
-
 .langley-chat-role {
   font-size: 11px;
   font-weight: 600;
@@ -849,7 +705,6 @@ textarea {
   letter-spacing: 0.5px;
   opacity: 0.7;
 }
-
 .langley-chat-raw-toggle {
   background: none;
   border: none;
@@ -861,174 +716,142 @@ textarea {
   padding: 0 4px;
   text-decoration: underline;
   transition: opacity 0.15s;
-
-  &:hover {
-    opacity: 1;
-  }
 }
-
+.langley-chat-raw-toggle:hover {
+  opacity: 1;
+}
 .langley-chat-content {
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
 }
-
 .langley-chat-raw {
   white-space: pre-wrap;
   margin: 0;
   font-family: monospace;
   font-size: 12px;
 }
-
-.langley-chat-markdown {
-  // Reset margins on first/last markdown elements
-  > *:first-child {
-    margin-top: 0;
-  }
-  > *:last-child {
-    margin-bottom: 0;
-  }
-
-  p {
-    margin: 0.4em 0;
-  }
-
-  code {
-    background: rgba(0, 0, 0, 0.15);
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 12px;
-    font-family: monospace;
-  }
-
-  pre {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    overflow-x: auto;
-    margin: 0.5em 0;
-
-    code {
-      background: none;
-      padding: 0;
-    }
-  }
-
-  ul,
-  ol {
-    padding-left: 1.5em;
-    margin: 0.4em 0;
-  }
-
-  blockquote {
-    border-left: 3px solid var(--border);
-    margin: 0.4em 0;
-    padding: 2px 10px;
-    opacity: 0.85;
-  }
-
-  table {
-    border-collapse: collapse;
-    margin: 0.4em 0;
-    font-size: 12px;
-
-    th,
-    td {
-      border: 1px solid var(--border);
-      padding: 4px 8px;
-    }
-
-    th {
-      background: rgba(0, 0, 0, 0.1);
-    }
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    margin: 0.6em 0 0.3em;
-    line-height: 1.3;
-  }
-
-  a {
-    color: var(--accent);
-  }
+.langley-chat-markdown > *:first-child {
+  margin-top: 0;
 }
-
+.langley-chat-markdown > *:last-child {
+  margin-bottom: 0;
+}
+.langley-chat-markdown p {
+  margin: 0.4em 0;
+}
+.langley-chat-markdown code {
+  background: rgba(0, 0, 0, 0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: monospace;
+}
+.langley-chat-markdown pre {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.langley-chat-markdown pre code {
+  background: none;
+  padding: 0;
+}
+.langley-chat-markdown ul,
+.langley-chat-markdown ol {
+  padding-left: 1.5em;
+  margin: 0.4em 0;
+}
+.langley-chat-markdown blockquote {
+  border-left: 3px solid var(--border);
+  margin: 0.4em 0;
+  padding: 2px 10px;
+  opacity: 0.85;
+}
+.langley-chat-markdown table {
+  border-collapse: collapse;
+  margin: 0.4em 0;
+  font-size: 12px;
+}
+.langley-chat-markdown table th,
+.langley-chat-markdown table td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+}
+.langley-chat-markdown table th {
+  background: rgba(0, 0, 0, 0.1);
+}
+.langley-chat-markdown h1,
+.langley-chat-markdown h2,
+.langley-chat-markdown h3,
+.langley-chat-markdown h4,
+.langley-chat-markdown h5,
+.langley-chat-markdown h6 {
+  margin: 0.6em 0 0.3em;
+  line-height: 1.3;
+}
+.langley-chat-markdown a {
+  color: var(--accent);
+}
 .langley-chat-input {
   display: flex;
   gap: 8px;
   padding: 10px 12px;
   border-top: 1px solid var(--border);
   background: var(--bg-card);
-
-  input {
-    flex: 1;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    padding: 8px 12px;
-    font-size: 13px;
-    font-family: var(--font);
-
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    &::placeholder {
-      color: var(--text-muted);
-    }
-  }
 }
-
-// ── Chat Tab ───────────────────────────────────────────────
-
+.langley-chat-input input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--font);
+}
+.langley-chat-input input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.langley-chat-input input::placeholder {
+  color: var(--text-muted);
+}
 .langley-chat-tab {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-
 .langley-chat-tab-header {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
   flex-shrink: 0;
-
-  label {
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
-
-  select {
-    appearance: none;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    padding: 6px 28px 6px 10px;
-    font-size: 13px;
-    font-family: var(--font);
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238b8fa3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-  }
 }
-
-// ── Chat session tabs ──────────────────────────────────────
-
+.langley-chat-tab-header label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.langley-chat-tab-header select {
+  appearance: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 6px 28px 6px 10px;
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238b8fa3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.langley-chat-tab-header select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 .langley-chat-sessions {
   display: flex;
   gap: 2px;
@@ -1038,7 +861,6 @@ textarea {
   border-bottom: 1px solid var(--border);
   padding-bottom: 4px;
 }
-
 .langley-chat-session-tab {
   display: flex;
   align-items: center;
@@ -1048,13 +870,11 @@ textarea {
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   padding: 0;
   font-size: 12px;
-
-  &.active {
-    background: var(--bg-card);
-    border-bottom-color: var(--bg-card);
-  }
 }
-
+.langley-chat-session-tab.active {
+  background: var(--bg-card);
+  border-bottom-color: var(--bg-card);
+}
 .langley-chat-session-label {
   background: none;
   border: none;
@@ -1063,13 +883,11 @@ textarea {
   font-family: var(--font);
   padding: 6px 8px 6px 10px;
   cursor: pointer;
-
-  .active & {
-    color: var(--text-primary);
-    font-weight: 600;
-  }
 }
-
+.active .langley-chat-session-label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
 .langley-chat-session-close {
   background: none;
   border: none;
@@ -1078,30 +896,23 @@ textarea {
   cursor: pointer;
   padding: 4px 6px;
   line-height: 1;
-
-  &:hover {
-    color: var(--red);
-  }
 }
-
+.langley-chat-session-close:hover {
+  color: var(--red);
+}
 .langley-chat-tab-body {
   flex: 1;
   min-height: 0;
-
-  .langley-chat-panel {
-    height: 100%;
-  }
 }
-
-// ── Logs Tab ───────────────────────────────────────────────
-
+.langley-chat-tab-body .langley-chat-panel {
+  height: 100%;
+}
 .langley-logs-tab {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
-
 .langley-logs-controls {
   display: flex;
   align-items: center;
@@ -1109,39 +920,34 @@ textarea {
   margin-bottom: 12px;
   flex-wrap: wrap;
   flex-shrink: 0;
-
-  label {
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
-
-  select {
-    appearance: none;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    padding: 6px 28px 6px 10px;
-    font-size: 13px;
-    font-family: var(--font);
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238b8fa3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-  }
 }
-
+.langley-logs-controls label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.langley-logs-controls select {
+  appearance: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 6px 28px 6px 10px;
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238b8fa3' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+.langley-logs-controls select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 .langley-logs-search {
   flex: 1;
   min-width: 150px;
   max-width: 300px;
 }
-
 .langley-logs-autoscroll {
   display: flex;
   align-items: center;
@@ -1149,12 +955,10 @@ textarea {
   font-size: 12px;
   color: var(--text-secondary);
   cursor: pointer;
-
-  input[type="checkbox"] {
-    margin: 0;
-  }
 }
-
+.langley-logs-autoscroll input[type="checkbox"] {
+  margin: 0;
+}
 .langley-logs-stream {
   flex: 1;
   min-height: 0;
@@ -1166,49 +970,39 @@ textarea {
   font-family: var(--font-mono);
   font-size: 12px;
 }
-
 .langley-log-entry {
   display: flex;
   gap: 8px;
   padding: 3px 6px;
   border-radius: var(--radius-sm);
-
-  &:hover {
-    background: var(--bg-hover);
-  }
-
-  &.langley-log-error .langley-log-level {
-    color: var(--red);
-  }
-
-  &.langley-log-message .langley-log-level {
-    color: var(--green);
-  }
-
-  &.langley-log-tool .langley-log-level {
-    color: var(--yellow);
-  }
-
-  &.langley-msg-in .langley-log-level {
-    color: var(--accent);
-  }
-
-  &.langley-msg-out .langley-log-level {
-    color: var(--green);
-  }
-
-  &.langley-log-audit .langley-log-level {
-    color: var(--yellow);
-    font-weight: 600;
-  }
 }
-
+.langley-log-entry:hover {
+  background: var(--bg-hover);
+}
+.langley-log-entry.langley-log-error .langley-log-level {
+  color: var(--red);
+}
+.langley-log-entry.langley-log-message .langley-log-level {
+  color: var(--green);
+}
+.langley-log-entry.langley-log-tool .langley-log-level {
+  color: var(--yellow);
+}
+.langley-log-entry.langley-msg-in .langley-log-level {
+  color: var(--accent);
+}
+.langley-log-entry.langley-msg-out .langley-log-level {
+  color: var(--green);
+}
+.langley-log-entry.langley-log-audit .langley-log-level {
+  color: var(--yellow);
+  font-weight: 600;
+}
 .langley-log-time {
   color: var(--text-muted);
   flex-shrink: 0;
   min-width: 70px;
 }
-
 .langley-log-level {
   color: var(--accent);
   font-weight: 600;
@@ -1216,47 +1010,38 @@ textarea {
   flex-shrink: 0;
   min-width: 60px;
 }
-
 .langley-log-message {
   color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
   flex: 1;
 }
-
-// ── Profiles Tab ───────────────────────────────────────────
-
-.langley-profiles-tab {
-  h2 {
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-
-    &:not(:first-child) {
-      margin-top: 20px;
-    }
-  }
+.langley-profiles-tab h2 {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
 }
-
+.langley-profiles-tab h2:not(:first-child) {
+  margin-top: 20px;
+}
 .langley-profiles-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-
-  @media (max-width: 768px) {
+}
+@media (max-width: 768px) {
+  .langley-profiles-layout {
     grid-template-columns: 1fr;
   }
 }
-
 .langley-profile-items {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 .langley-profile-item {
   display: flex;
   align-items: center;
@@ -1267,17 +1052,14 @@ textarea {
   border-radius: var(--radius-sm);
   margin-bottom: 6px;
   transition: border-color 0.15s;
-
-  &:hover {
-    border-color: var(--accent);
-  }
-
-  &.active {
-    border-color: var(--accent);
-    background: var(--bg-hover);
-  }
 }
-
+.langley-profile-item:hover {
+  border-color: var(--accent);
+}
+.langley-profile-item.active {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
 .langley-profile-select {
   flex: 1;
   display: flex;
@@ -1291,114 +1073,97 @@ textarea {
   padding: 0;
   font-family: var(--font);
 }
-
 .langley-profile-name {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
 }
-
 .langley-profile-meta {
   font-size: 11px;
   color: var(--text-muted);
 }
-
 .langley-profile-actions {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
 }
-
 .langley-profile-detail {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
-
-  h2 {
-    text-transform: none;
-    font-size: 16px;
-    color: var(--text-primary);
-  }
 }
-
+.langley-profile-detail h2 {
+  text-transform: none;
+  font-size: 16px;
+  color: var(--text-primary);
+}
 .langley-profile-dl {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 6px 16px;
   margin-top: 12px;
-
-  dt {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  dd {
-    font-size: 13px;
-    color: var(--text-primary);
-    margin: 0;
-
-    code {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      background: var(--bg-primary);
-      padding: 1px 5px;
-      border-radius: var(--radius-sm);
-    }
-  }
 }
-
+.langley-profile-dl dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.langley-profile-dl dd {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin: 0;
+}
+.langley-profile-dl dd code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-primary);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+}
 .langley-profile-prompt {
   white-space: pre-wrap;
   max-height: 200px;
   overflow-y: auto;
 }
-
-// ── Profile edit form ──────────────────────────────────────
-
 .langley-profile-edit {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-top: 12px;
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  input[type="text"],
-  textarea {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    font-family: var(--font);
-    font-size: 13px;
-    padding: 6px 10px;
-
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-  }
-
-  textarea {
-    resize: vertical;
-    font-family: var(--font-mono);
-    font-size: 12px;
-  }
 }
-
+.langley-profile-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.langley-profile-edit input[type="text"],
+.langley-profile-edit textarea {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 6px 10px;
+}
+.langley-profile-edit input[type="text"]:focus,
+.langley-profile-edit textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.langley-profile-edit textarea {
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
 .langley-save-feedback {
   padding: 8px 14px;
   margin-bottom: 12px;
@@ -1408,26 +1173,20 @@ textarea {
   color: #4caf50;
   font-size: 13px;
 }
-
 .langley-generate-profile {
   border-top: 1px solid var(--border);
   padding-top: 12px;
-
-  h3 {
-    font-size: 14px;
-    margin: 0 0 4px;
-  }
 }
-
-// ── Preconfigured agents in dialog ─────────────────────────
-
+.langley-generate-profile h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
 .langley-preconfigured-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 12px;
 }
-
 .langley-preconfigured-item {
   display: flex;
   flex-direction: column;
@@ -1440,80 +1199,62 @@ textarea {
   cursor: pointer;
   font-family: var(--font);
   transition: all 0.15s;
-
-  &:hover {
-    border-color: var(--accent);
-    background: var(--bg-hover);
-  }
 }
-
+.langley-preconfigured-item:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
 .langley-preconfigured-name {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
 }
-
 .langley-preconfigured-provider {
   font-size: 11px;
   color: var(--text-muted);
 }
-
-// ── Responsive layout ──────────────────────────────────────
-
 @media (max-width: 640px) {
   .langley-header {
     padding: 0 12px;
     height: 44px;
     gap: 8px;
-
-    h1 {
-      font-size: 15px;
-    }
   }
-
+  .langley-header h1 {
+    font-size: 15px;
+  }
   .langley-nav-tab {
     padding: 10px 8px;
     font-size: 12px;
   }
-
   .langley-main {
     padding: 12px;
   }
-
   .langley-summary-cards {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 8px;
   }
-
   .langley-controls {
     flex-wrap: wrap;
   }
 }
-
-// ── Agent Inspector ────────────────────────────────────────
-
 .langley-inspector {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-
 .langley-inspector-header {
   display: flex;
   align-items: center;
   gap: 12px;
-
-  h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 600;
-  }
-
-  .langley-actions {
-    margin-left: auto;
-  }
 }
-
+.langley-inspector-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+.langley-inspector-header .langley-actions {
+  margin-left: auto;
+}
 .langley-inspector-status {
   display: flex;
   flex-wrap: wrap;
@@ -1523,37 +1264,31 @@ textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-
 .langley-inspector-stat {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 100px;
 }
-
 .langley-inspector-stat-label {
   font-size: 11px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
 .langley-inspector-stat-value {
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
 }
-
 .langley-inspector-stat-error .langley-inspector-stat-value {
   color: var(--red);
 }
-
 .langley-inspector-tabs {
   display: flex;
   gap: 0;
   border-bottom: 2px solid var(--border);
 }
-
 .langley-inspector-tab {
   padding: 8px 16px;
   background: none;
@@ -1566,90 +1301,75 @@ textarea {
   font-size: 13px;
   font-weight: 500;
   transition: all 0.15s;
-
-  &:hover {
-    color: var(--text-primary);
-    background: var(--bg-hover);
-  }
-
-  &.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-  }
 }
-
+.langley-inspector-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.langley-inspector-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
 .langley-inspector-content {
   min-height: 400px;
 }
-
 .langley-inspector-chat {
   display: flex;
   flex-direction: column;
   height: 500px;
-
-  .langley-chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    background: var(--bg-secondary);
-    border-radius: var(--radius);
-  }
-
-  .langley-chat-input-bar {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-  }
-
-  .langley-chat-input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-card);
-    color: var(--text-primary);
-    font-family: var(--font);
-    font-size: 14px;
-  }
 }
-
+.langley-inspector-chat .langley-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+}
+.langley-inspector-chat .langley-chat-input-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.langley-inspector-chat .langley-chat-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 14px;
+}
 .langley-inspector-logs,
 .langley-inspector-messages {
   max-height: 500px;
   overflow-y: auto;
 }
-
 .langley-inspector-checkpoints {
   overflow-x: auto;
 }
-
 .langley-approval-entry {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
-
-  .langley-approval-desc {
-    flex: 1;
-    font-size: 13px;
-    color: var(--text-primary);
-  }
-
-  .langley-approval-status {
-    font-size: 12px;
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    background: var(--bg-hover);
-    color: var(--text-secondary);
-  }
 }
-
-// ── Agent name link in table ───────────────────────────────
-
+.langley-approval-entry .langley-approval-desc {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.langley-approval-entry .langley-approval-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
 .langley-agent-name-link {
   background: none;
   border: none;
@@ -1660,14 +1380,10 @@ textarea {
   padding: 0;
   text-decoration: underline;
   text-underline-offset: 2px;
-
-  &:hover {
-    color: var(--text-primary);
-  }
 }
-
-// ── Bulk actions bar ───────────────────────────────────────
-
+.langley-agent-name-link:hover {
+  color: var(--text-primary);
+}
 .langley-bulk-actions {
   display: flex;
   align-items: center;
@@ -1680,16 +1396,12 @@ textarea {
   font-size: 13px;
   color: var(--text-secondary);
 }
-
-// ── Message Inspector ──────────────────────────────────────
-
 .langley-message-inspector {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
-
 .langley-message-inspector-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
@@ -1698,21 +1410,18 @@ textarea {
   min-height: 0;
   overflow: hidden;
 }
-
 .langley-channel-list {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-
-  h3 {
-    margin: 0 0 8px;
-    font-size: 14px;
-    font-weight: 600;
-    flex-shrink: 0;
-  }
 }
-
+.langley-channel-list h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
 .langley-channel-items {
   list-style: none;
   padding: 0;
@@ -1724,14 +1433,10 @@ textarea {
   min-height: 0;
   flex: 1;
 }
-
-.langley-channel-item {
-  &.active .langley-channel-select {
-    background: var(--bg-hover);
-    border-color: var(--accent);
-  }
+.langley-channel-item.active .langley-channel-select {
+  background: var(--bg-hover);
+  border-color: var(--accent);
 }
-
 .langley-channel-select {
   display: flex;
   flex-direction: column;
@@ -1745,39 +1450,33 @@ textarea {
   font-family: var(--font);
   text-align: left;
   transition: all 0.15s;
-
-  &:hover {
-    border-color: var(--accent);
-    background: var(--bg-hover);
-  }
 }
-
+.langley-channel-select:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
 .langley-channel-name {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   word-break: break-all;
 }
-
 .langley-channel-count {
   font-size: 11px;
   color: var(--text-muted);
 }
-
 .langley-channel-detail {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-
-  h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: var(--font-mono);
-  }
 }
-
+.langley-channel-detail h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
 .langley-message-controls {
   display: flex;
   align-items: center;
@@ -1786,26 +1485,21 @@ textarea {
   flex-wrap: wrap;
   flex-shrink: 0;
 }
-
 .langley-message-stream {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
-
 .langley-message-entry {
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
-
-  &:hover {
-    background: var(--bg-hover);
-  }
-
-  &.expanded {
-    background: var(--bg-card);
-  }
 }
-
+.langley-message-entry:hover {
+  background: var(--bg-hover);
+}
+.langley-message-entry.expanded {
+  background: var(--bg-card);
+}
 .langley-message-summary {
   display: flex;
   align-items: center;
@@ -1814,14 +1508,12 @@ textarea {
   cursor: pointer;
   font-size: 13px;
 }
-
 .langley-message-seq {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
   min-width: 40px;
 }
-
 .langley-message-sender,
 .langley-message-recipient {
   font-size: 12px;
@@ -1831,12 +1523,10 @@ textarea {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .langley-message-arrow {
   color: var(--text-muted);
   font-size: 11px;
 }
-
 .langley-message-preview {
   flex: 1;
   font-size: 12px;
@@ -1846,12 +1536,10 @@ textarea {
   white-space: nowrap;
   font-family: var(--font-mono);
 }
-
 .langley-message-detail {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
 }
-
 .langley-message-body-pre {
   background: var(--bg-secondary);
   padding: 8px 12px;
@@ -1864,28 +1552,22 @@ textarea {
   max-height: 300px;
   overflow-y: auto;
 }
-
 .langley-message-replay-bar {
   display: flex;
   gap: 8px;
   margin-top: 8px;
   align-items: center;
 }
-
-// ── Trace & Resource Monitor ───────────────────────────────
-
 .langley-trace-tab {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-
 .langley-trace-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
-
 .langley-trace-stat-card {
   display: flex;
   flex-direction: column;
@@ -1896,36 +1578,30 @@ textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
-
 .langley-trace-stat-value {
   font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
 }
-
 .langley-trace-stat-label {
   font-size: 11px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
 .langley-trace-timeline {
   max-height: 600px;
   overflow-y: auto;
 }
-
 .langley-trace-entry {
   display: flex;
   gap: 12px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
-
-  &:last-child {
-    border-bottom: none;
-  }
 }
-
+.langley-trace-entry:last-child {
+  border-bottom: none;
+}
 .langley-trace-dot {
   width: 10px;
   height: 10px;
@@ -1933,70 +1609,55 @@ textarea {
   flex-shrink: 0;
   margin-top: 4px;
 }
-
 .langley-trace-content {
   flex: 1;
   min-width: 0;
 }
-
 .langley-trace-header {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
-
 .langley-trace-time {
   font-size: 12px;
   color: var(--text-muted);
   font-family: var(--font-mono);
 }
-
 .langley-trace-event-type {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   font-family: var(--font-mono);
 }
-
 .langley-trace-agent {
   font-size: 12px;
   color: var(--text-secondary);
 }
-
 .langley-trace-payload {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
 }
-
 .langley-trace-kv {
   font-size: 11px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-
-  strong {
-    color: var(--text-secondary);
-  }
 }
-
-// ── Raw JSON editor ────────────────────────────────────────
-
+.langley-trace-kv strong {
+  color: var(--text-secondary);
+}
 .langley-raw-editor {
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.5;
   tab-size: 2;
 }
-
-// ── Responsive: message inspector ──────────────────────────
-
 @media (max-width: 768px) {
   .langley-message-inspector-layout {
     grid-template-columns: 1fr;
   }
-
   .langley-inspector-status {
     flex-direction: column;
   }

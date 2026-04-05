@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild";
-import { lessLoader } from "esbuild-plugin-less";
+import { transform } from "lightningcss";
 import { getarg } from "./tools/getarg.mjs";
 import fs from "fs";
 import cpy from "cpy";
@@ -15,7 +15,6 @@ const BUILD = [
   {
     define: COMMON_DEFINE,
     entryPoints: ["src/ts/index.tsx"],
-    plugins: [lessLoader()],
     packages: "external",
     format: "esm",
     jsx: "automatic",
@@ -28,7 +27,6 @@ const BUILD = [
   {
     define: COMMON_DEFINE,
     entryPoints: ["src/ts/index.tsx"],
-    plugins: [lessLoader()],
     format: "esm",
     jsx: "automatic",
     bundle: true,
@@ -38,6 +36,30 @@ const BUILD = [
     outfile: "dist/cdn/index.js",
   },
 ];
+
+async function compile_css() {
+  const process_path = (src_path, out_path) => {
+    fs.mkdirSync(out_path, { recursive: true });
+    fs.readdirSync(src_path, { withFileTypes: true }).forEach((entry) => {
+      const input = `${src_path}/${entry.name}`;
+      const output = `${out_path}/${entry.name}`;
+      if (entry.isDirectory()) {
+        process_path(input, output);
+      } else if (entry.isFile() && entry.name.endsWith(".css")) {
+        const source = fs.readFileSync(input);
+        const { code } = transform({
+          filename: entry.name,
+          code: source,
+          minify: !DEBUG,
+          sourceMap: false,
+        });
+        fs.writeFileSync(output, code);
+      }
+    });
+  };
+  process_path("src/css", "dist/cdn");
+  process_path("src/css", "dist/esm");
+}
 
 async function copy_html() {
   fs.mkdirSync("dist/html", { recursive: true });
@@ -52,6 +74,7 @@ async function copy_to_python() {
 
 async function build_all() {
   await copy_html();
+  await compile_css();
   await Promise.all(BUILD.map((c) => esbuild.build(c))).catch(() =>
     process.exit(1),
   );
