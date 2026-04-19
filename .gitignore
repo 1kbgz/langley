@@ -151,6 +151,7 @@ multirun/
 ROADMAP.md
 AGENTS.md
 .github/hooks/sdlc.json
+<<<<<<< before updating
 
 # References
 claude-agent-sdk-python
@@ -160,3 +161,6 @@ opencode
 
 # Outputs
 .langley
+=======
+.superpowers
+>>>>>>> after updating
