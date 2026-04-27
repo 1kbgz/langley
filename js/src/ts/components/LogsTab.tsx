@@ -5,6 +5,23 @@ import type { AgentSummary } from "./types.ts";
 
 type LogView = "logs" | "messages" | "audit";
 
+// Hard cap on the in-memory entry buffer to keep React from choking when an
+// agent streams thousands of token deltas on its outbox channel.  Without
+// this, the array (and every render of the list) grows without bound and
+// the tab eventually crashes.
+const MAX_ENTRIES = 500;
+
+// Outbox event types that represent streaming token chunks rather than
+// human-meaningful log lines.  We collapse them out of the logs / messages
+// views; the coalesced ``message`` entry covers the full assistant turn.
+const NOISY_TYPES = new Set(["delta", "thinking", "turn_complete"]);
+
+function isNoisy(body: unknown): boolean {
+  if (!body || typeof body !== "object") return false;
+  const type = (body as Record<string, unknown>).type;
+  return typeof type === "string" && NOISY_TYPES.has(type);
+}
+
 interface LogEntry {
   id: string;
   timestamp: number;
@@ -107,11 +124,17 @@ export function LogsTab({ agents }: { agents: AgentSummary[] }) {
           });
           for (const msg of msgs) {
             if (msg.sequence > seqRef.current) seqRef.current = msg.sequence;
+            if (isNoisy(msg.body)) continue;
             newLogs.push(parseLogEntry(msg));
           }
         }
         if (newLogs.length > 0) {
-          setLogs((prev) => [...prev, ...newLogs]);
+          setLogs((prev) => {
+            const merged = [...prev, ...newLogs];
+            return merged.length > MAX_ENTRIES
+              ? merged.slice(merged.length - MAX_ENTRIES)
+              : merged;
+          });
         }
       } catch {
         // Non-critical
@@ -137,6 +160,7 @@ export function LogsTab({ agents }: { agents: AgentSummary[] }) {
         for (const msg of inboxMsgs) {
           if (msg.sequence > msgSeqInRef.current)
             msgSeqInRef.current = msg.sequence;
+          if (isNoisy(msg.body)) continue;
           newEntries.push(parseMessageEntry(msg, selectedAgent));
         }
         const outboxMsgs = await queryMessages(
@@ -149,11 +173,17 @@ export function LogsTab({ agents }: { agents: AgentSummary[] }) {
         for (const msg of outboxMsgs) {
           if (msg.sequence > msgSeqOutRef.current)
             msgSeqOutRef.current = msg.sequence;
+          if (isNoisy(msg.body)) continue;
           newEntries.push(parseMessageEntry(msg, selectedAgent));
         }
         if (newEntries.length > 0) {
           newEntries.sort((a, b) => a.timestamp - b.timestamp);
-          setMessageEntries((prev) => [...prev, ...newEntries]);
+          setMessageEntries((prev) => {
+            const merged = [...prev, ...newEntries];
+            return merged.length > MAX_ENTRIES
+              ? merged.slice(merged.length - MAX_ENTRIES)
+              : merged;
+          });
         }
       } catch {
         // Non-critical
@@ -189,7 +219,7 @@ export function LogsTab({ agents }: { agents: AgentSummary[] }) {
   // Auto-scroll
   const scrollToBottom = useCallback(() => {
     if (autoScroll) {
-      logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      logsEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
   }, [autoScroll]);
 

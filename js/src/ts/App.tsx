@@ -59,16 +59,34 @@ export const ALL_PANELS: PanelId[] = [
   "profiles",
 ];
 
-/** Extract all panel names from a regular-layout Layout tree. */
+/** Extract all panel names from a regular-layout Layout tree.
+ *
+ * regular-layout 0.4 renamed the node types: `child-panel`→`tab-layout`
+ * (with `tabs` instead of `child`) and `split-panel`→`split-layout`. We
+ * accept both for forward/backward compat — getting this wrong means we
+ * detect "no panels", which triggers the empty-layout recovery branch
+ * and causes either an infinite re-insert loop or duplicate tabs.
+ */
 export function extractPanelNames(layout: unknown): Set<string> {
   const names = new Set<string>();
   function walk(node: unknown) {
     if (!node || typeof node !== "object") return;
     const n = node as Record<string, unknown>;
-    if (n.type === "child-panel" && Array.isArray(n.child)) {
-      for (const t of n.child) names.add(t as string);
-    } else if (n.type === "split-panel" && Array.isArray(n.children)) {
-      for (const c of n.children) walk(c);
+    const type = n.type;
+    if (type === "tab-layout" || type === "child-panel") {
+      const tabs = (n.tabs ?? n.child) as unknown;
+      if (Array.isArray(tabs)) {
+        for (const t of tabs) {
+          if (typeof t === "string") names.add(t);
+        }
+      } else if (typeof tabs === "string") {
+        names.add(tabs);
+      }
+    } else if (type === "split-layout" || type === "split-panel") {
+      const children = n.children;
+      if (Array.isArray(children)) {
+        for (const c of children) walk(c);
+      }
     }
   }
   walk(layout);
@@ -79,15 +97,51 @@ export function extractPanelNames(layout: unknown): Set<string> {
 export function selectPanelInLayout(layout: unknown, name: string): boolean {
   if (!layout || typeof layout !== "object") return false;
   const n = layout as Record<string, unknown>;
-  if (n.type === "child-panel" && Array.isArray(n.child)) {
-    const idx = (n.child as string[]).indexOf(name);
-    if (idx >= 0) {
-      n.selected = idx;
+  const type = n.type;
+  if (type === "tab-layout" || type === "child-panel") {
+    const tabs = (n.tabs ?? n.child) as unknown;
+    if (Array.isArray(tabs)) {
+      const idx = (tabs as string[]).indexOf(name);
+      if (idx >= 0) {
+        n.selected = idx;
+        return true;
+      }
+    } else if (tabs === name) {
       return true;
     }
-  } else if (n.type === "split-panel" && Array.isArray(n.children)) {
-    for (const c of n.children) {
-      if (selectPanelInLayout(c, name)) return true;
+  } else if (type === "split-layout" || type === "split-panel") {
+    const children = n.children;
+    if (Array.isArray(children)) {
+      for (const c of children) {
+        if (selectPanelInLayout(c, name)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** Returns true if the named panel is the currently-visible (selected) tab
+ *  in its tab-layout group.  A panel that exists in the tree but sits behind
+ *  another tab is *not* visible. */
+export function isPanelVisible(layout: unknown, name: string): boolean {
+  if (!layout || typeof layout !== "object") return false;
+  const n = layout as Record<string, unknown>;
+  const type = n.type;
+  if (type === "tab-layout" || type === "child-panel") {
+    const tabs = (n.tabs ?? n.child) as unknown;
+    if (Array.isArray(tabs)) {
+      const idx = (tabs as string[]).indexOf(name);
+      if (idx < 0) return false;
+      const selected = typeof n.selected === "number" ? n.selected : 0;
+      return idx === selected;
+    }
+    return tabs === name;
+  } else if (type === "split-layout" || type === "split-panel") {
+    const children = n.children;
+    if (Array.isArray(children)) {
+      for (const c of children) {
+        if (isPanelVisible(c, name)) return true;
+      }
     }
   }
   return false;
@@ -199,6 +253,12 @@ export function App() {
     const el = layoutRef.current;
     if (!el) return;
 
+    // Track consecutive empty layout updates so we break out of any
+    // pathological loop where restoring a stale localStorage layout fails
+    // to register any panels and we keep re-inserting "status" forever.
+    // (Symptom: Chrome RESULT_CODE_HUNG on tab load.)
+    let consecutiveEmpty = 0;
+
     const handler = (e: CustomEvent) => {
       const names = extractPanelNames(e.detail);
       setActivePanels(names);
@@ -207,9 +267,32 @@ export function App() {
       } catch {
         /* ignore */
       }
-      // If all panels were closed, re-open the status panel
+      // If all panels were closed, re-open the status panel — but only if
+      // we haven't just done so unsuccessfully.  Repeated empty updates
+      // mean either the saved layout uses a schema we no longer recognize
+      // or insertPanel is no-oping; either way, bail out and reset.
       if (names.size === 0) {
-        el.insertPanel("status");
+        consecutiveEmpty += 1;
+        if (consecutiveEmpty >= 3) {
+          try {
+            localStorage.removeItem("langley-layout");
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
+        // Defensively check whether status is already present (the
+        // detected-empty state may be a false negative due to a schema
+        // mismatch); if so, do nothing and let consecutiveEmpty trigger
+        // the bail-out rather than racking up duplicate tabs.
+        const statusExists = el.getPanel
+          ? el.getPanel("status") != null
+          : false;
+        if (!statusExists) {
+          el.insertPanel("status");
+        }
+      } else {
+        consecutiveEmpty = 0;
       }
     };
 
@@ -223,17 +306,28 @@ export function App() {
         const saved = localStorage.getItem("langley-layout");
         if (saved) {
           const parsed = JSON.parse(saved);
-          el.restore(parsed);
-          restored = true;
+          // Only restore if the saved layout actually contains panels we
+          // can recognize.  A layout we can't parse would otherwise fire
+          // an empty regular-layout-update which the handler responds to
+          // by inserting "status", which fires another event, etc.
+          if (extractPanelNames(parsed).size > 0) {
+            el.restore(parsed);
+            restored = true;
+          } else {
+            localStorage.removeItem("langley-layout");
+          }
         }
       } catch {
         /* fall through to default */
       }
 
       if (!restored) {
-        // Default: insert panels from hash route (or just status)
+        // Default: insert panels from hash route (or just status).
+        // Guard with getPanel so we never create duplicate tabs if the
+        // user navigates and the effect re-runs.
         for (const p of initialRoute.panels) {
-          el.insertPanel(p);
+          const exists = el.getPanel ? el.getPanel(p) != null : false;
+          if (!exists) el.insertPanel(p);
         }
       }
     }
@@ -243,18 +337,64 @@ export function App() {
     };
   }, []);
 
-  const togglePanel = useCallback(
-    (id: PanelId) => {
-      const el = layoutRef.current;
-      if (!el) return;
-      if (activePanels.has(id)) {
-        el.removePanel(id);
-      } else {
-        el.insertPanel(id);
+  // Workaround for regular-layout 0.4 bug: when a tab drag is cancelled
+  // (escape, scroll, lost pointer capture, etc.), the library's overlay
+  // controller calls `clear(null, ...)` which early-returns BEFORE removing
+  // the `.overlay` CSS class.  The result is a "ghost" frame stuck on the
+  // page with dashed-border styling and hidden contents until the next
+  // successful drag.  We mop up by stripping `.overlay` from every frame
+  // child after pointerup/pointercancel/lostpointercapture.  Running on
+  // pointerup is also safe: the lib's handler runs first synchronously
+  // and our removal is a no-op when the drag completed cleanly.
+  useEffect(() => {
+    const el = layoutRef.current;
+    if (!el) return;
+
+    const cleanup = () => {
+      // setTimeout(0) so the library's own clear() runs first.
+      setTimeout(() => {
+        if (!layoutRef.current) return;
+        const frames = layoutRef.current.querySelectorAll(":scope > .overlay");
+        frames.forEach((f) => f.classList.remove("overlay"));
+      }, 0);
+    };
+
+    const events = ["pointerup", "pointercancel", "lostpointercapture"];
+    for (const e of events) {
+      window.addEventListener(e, cleanup, { capture: true });
+    }
+    window.addEventListener("blur", cleanup);
+
+    return () => {
+      for (const e of events) {
+        window.removeEventListener(e, cleanup, {
+          capture: true,
+        } as EventListenerOptions);
       }
-    },
-    [activePanels],
-  );
+      window.removeEventListener("blur", cleanup);
+    };
+  }, []);
+
+  const togglePanel = useCallback((id: PanelId) => {
+    const el = layoutRef.current;
+    if (!el) return;
+    // Use the layout's own state as the source of truth, not React's
+    // possibly-stale activePanels.  Inserting a panel that already exists
+    // creates a duplicate tab (regular-layout doesn't dedupe by name).
+    const exists = el.getPanel ? el.getPanel(id) != null : false;
+    if (!exists) {
+      el.insertPanel(id);
+      return;
+    }
+    // Panel exists.  If it's hidden behind another tab, foreground it
+    // instead of closing.  Only close when it's already the visible tab.
+    const tree = el.save();
+    if (tree && !isPanelVisible(tree, id) && selectPanelInLayout(tree, id)) {
+      el.restore(tree);
+      return;
+    }
+    el.removePanel(id);
+  }, []);
 
   const fetchAgents = useCallback(async () => {
     try {
@@ -315,27 +455,49 @@ export function App() {
     };
   }, [fetchAgents, refreshActivity]);
 
-  const handleNavigateChat = useCallback(
-    (agentId: string) => {
-      setChatInitialAgent(agentId);
-      const el = layoutRef.current;
-      if (!el) return;
-      if (activePanels.has("chat")) {
-        // Panel exists — foreground it if it's behind another tab
-        const tree = el.save();
-        if (tree && selectPanelInLayout(tree, "chat")) {
-          el.restore(tree);
-        }
-      } else {
-        el.insertPanel("chat");
+  const handleNavigateChat = useCallback((agentId: string) => {
+    setChatInitialAgent(agentId);
+    const el = layoutRef.current;
+    if (!el) return;
+    const exists = el.getPanel ? el.getPanel("chat") != null : false;
+    if (exists) {
+      // Panel exists — foreground it if it's behind another tab
+      const tree = el.save();
+      if (tree && selectPanelInLayout(tree, "chat")) {
+        el.restore(tree);
       }
-    },
-    [activePanels],
-  );
+    } else {
+      el.insertPanel("chat");
+    }
+  }, []);
 
   const handleNavigateInspect = useCallback((agentId: string) => {
     setInspector({ agentId });
+    const el = layoutRef.current;
+    if (!el) return;
+    const exists = el.getPanel ? el.getPanel("inspector") != null : false;
+    if (!exists) {
+      el.insertPanel("inspector");
+      return;
+    }
+    // Already in the layout — bring to foreground if it's hidden behind another tab.
+    const tree = el.save();
+    if (tree && !isPanelVisible(tree, "inspector")) {
+      if (selectPanelInLayout(tree, "inspector")) {
+        el.restore(tree);
+      }
+    }
   }, []);
+
+  // Sync inspector state → panel presence: removing the panel via the
+  // titlebar 'x' fires regular-layout-update which clears it from
+  // activePanels; we mirror that into our inspector React state.
+  useEffect(() => {
+    if (!inspector) return;
+    if (!activePanels.has("inspector")) {
+      setInspector(undefined);
+    }
+  }, [activePanels, inspector]);
 
   const handleBulkAction = useCallback(
     async (agentIds: string[], action: "stop" | "kill" | "restart") => {
@@ -435,33 +597,26 @@ export function App() {
           <regular-layout-frame name="profiles" data-testid="panel-profiles">
             <ProfilesTab />
           </regular-layout-frame>
-        </regular-layout>
 
-        {/* Agent inspector — modal overlay on top of everything */}
-        {inspector && (
-          <div
-            className="langley-overlay-inspector"
+          {/* @ts-expect-error regular-layout-frame is a web component */}
+          <regular-layout-frame
+            name="inspector"
             data-testid="panel-agent-inspector"
           >
-            <div className="langley-overlay-header">
-              <span className="langley-overlay-title">Agent Inspector</span>
-              <button
-                className="langley-btn langley-overlay-close"
-                onClick={() => setInspector(undefined)}
-                data-testid="close-inspector"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="langley-overlay-body">
+            {inspector ? (
               <AgentInspector
                 agentId={inspector.agentId}
-                onBack={() => setInspector(undefined)}
+                onBack={() => {
+                  setInspector(undefined);
+                  layoutRef.current?.removePanel("inspector");
+                }}
                 onAction={() => onAgentsChanged()}
               />
-            </div>
-          </div>
-        )}
+            ) : (
+              <div className="langley-empty">No agent selected.</div>
+            )}
+          </regular-layout-frame>
+        </regular-layout>
       </main>
     </div>
   );

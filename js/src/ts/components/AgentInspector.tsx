@@ -26,6 +26,17 @@ type InspectorTab =
   | "profile"
   | "approvals";
 
+// Hard cap on in-memory entry buffers.  An LM-Studio-backed agent emits one
+// outbox message per token, so without this cap the React arrays (and
+// every render of them) grow without bound and the tab eventually crashes.
+const MAX_ENTRIES = 500;
+function capArray<T>(arr: T[]): T[] {
+  return arr.length > MAX_ENTRIES ? arr.slice(arr.length - MAX_ENTRIES) : arr;
+}
+// Outbox event types that are streaming token chunks rather than
+// human-meaningful entries; collapsed out of logs / messages views.
+const NOISY_TYPES = new Set(["delta", "thinking", "turn_complete"]);
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -176,7 +187,7 @@ export function AgentInspector({
           }
         }
         if (newMsgs.length > 0)
-          setChatMessages((prev) => [...prev, ...newMsgs]);
+          setChatMessages((prev) => capArray([...prev, ...newMsgs]));
 
         const inboxMsgs = await queryMessages(`agent.${agentId}.inbox`, {
           from_seq: inboxSeqRef.current,
@@ -191,7 +202,7 @@ export function AgentInspector({
       }
     };
     poll();
-    const interval = setInterval(poll, 1000);
+    const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
   }, [agentId, activeTab]);
 
@@ -213,6 +224,8 @@ export function AgentInspector({
             if (msg.sequence > logSeqRef.current)
               logSeqRef.current = msg.sequence;
             const body = msg.body as Record<string, unknown>;
+            const type = (body.type as string) ?? "";
+            if (NOISY_TYPES.has(type)) continue;
             newLogs.push({
               id: msg.id,
               timestamp: (body.timestamp as number) ?? msg.timestamp,
@@ -228,7 +241,8 @@ export function AgentInspector({
             });
           }
         }
-        if (newLogs.length > 0) setLogs((prev) => [...prev, ...newLogs]);
+        if (newLogs.length > 0)
+          setLogs((prev) => capArray([...prev, ...newLogs]));
       } catch {
         /* non-critical */
       }
@@ -252,6 +266,8 @@ export function AgentInspector({
           if (msg.sequence > msgInSeqRef.current)
             msgInSeqRef.current = msg.sequence;
           const body = msg.body as Record<string, unknown>;
+          const type = (body.type as string) ?? "";
+          if (NOISY_TYPES.has(type)) continue;
           entries.push({
             id: msg.id,
             timestamp: msg.timestamp,
@@ -271,6 +287,8 @@ export function AgentInspector({
           if (msg.sequence > msgOutSeqRef.current)
             msgOutSeqRef.current = msg.sequence;
           const body = msg.body as Record<string, unknown>;
+          const type = (body.type as string) ?? "";
+          if (NOISY_TYPES.has(type)) continue;
           entries.push({
             id: msg.id,
             timestamp: msg.timestamp,
@@ -284,7 +302,7 @@ export function AgentInspector({
         }
         if (entries.length > 0) {
           entries.sort((a, b) => a.timestamp - b.timestamp);
-          setMessageEntries((prev) => [...prev, ...entries]);
+          setMessageEntries((prev) => capArray([...prev, ...entries]));
         }
       } catch {
         /* non-critical */
@@ -333,7 +351,7 @@ export function AgentInspector({
 
   // Auto-scroll chat
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    chatEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, [chatMessages]);
 
   const handleSendChat = useCallback(async () => {
@@ -432,6 +450,18 @@ export function AgentInspector({
             </button>
           </div>
         )}
+        {agent &&
+          (agent.status === "stopped" || agent.status === "errored") && (
+            <div className="langley-actions">
+              <button
+                className="langley-btn langley-btn-primary"
+                data-testid="inspector-restart"
+                onClick={() => handleAction("restart")}
+              >
+                Restart
+              </button>
+            </div>
+          )}
       </div>
 
       {error && (

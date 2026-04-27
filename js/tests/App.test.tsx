@@ -1,6 +1,11 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { App, extractPanelNames, parseHash } from "../src/ts/App.tsx";
+import {
+  App,
+  extractPanelNames,
+  isPanelVisible,
+  parseHash,
+} from "../src/ts/App.tsx";
 import type { AgentSummary, DashboardState } from "../src/ts/App.tsx";
 
 // Mock the api module so the app doesn't make real HTTP calls
@@ -123,12 +128,45 @@ vi.mock("regular-layout", () => {
       customElements.define(
         "regular-layout",
         class extends HTMLElement {
-          insertPanel() {}
-          removePanel() {}
-          save() {
-            return null;
+          private _panels: string[] = [];
+          private _selected: number = 0;
+          insertPanel(name: string) {
+            if (!this._panels.includes(name)) {
+              this._panels.push(name);
+              this._selected = this._panels.length - 1;
+            }
           }
-          restore() {}
+          removePanel(name: string) {
+            const idx = this._panels.indexOf(name);
+            if (idx < 0) return;
+            this._panels.splice(idx, 1);
+            if (this._selected >= this._panels.length) {
+              this._selected = Math.max(0, this._panels.length - 1);
+            }
+          }
+          save() {
+            if (this._panels.length === 0) return null;
+            return {
+              type: "tab-layout",
+              tabs: [...this._panels],
+              selected: this._selected,
+            };
+          }
+          restore(tree: { tabs?: string[]; selected?: number } | null) {
+            if (
+              tree &&
+              Array.isArray(tree.tabs) &&
+              typeof tree.selected === "number"
+            ) {
+              this._panels = [...tree.tabs];
+              this._selected = tree.selected;
+            }
+          }
+          getPanel(name: string) {
+            return this._panels.includes(name)
+              ? { type: "tab-layout", tabs: [name] }
+              : null;
+          }
         },
       );
     }
@@ -233,6 +271,97 @@ describe("AgentTable", () => {
     expect(screen.getByTestId("no-agents")).toBeInTheDocument();
     expect(screen.queryByTestId("agent-table")).not.toBeInTheDocument();
   });
+
+  test("stopped agent shows Restart button", async () => {
+    const { AgentTable } = await import("../src/ts/components/AgentTable.tsx");
+    const onAction = vi.fn();
+    await act(async () => {
+      render(
+        <AgentTable
+          agents={[
+            {
+              id: "a1",
+              name: "test",
+              profile: "p",
+              tenant_id: "t",
+              status: "stopped",
+              uptime_seconds: 0,
+            },
+          ]}
+          onAction={onAction}
+        />,
+      );
+    });
+    const btn = screen.getByTestId("restart-a1");
+    expect(btn).toHaveTextContent("Restart");
+    fireEvent.click(btn);
+    expect(onAction).toHaveBeenCalledWith("a1", "restart");
+  });
+
+  test("errored agent shows Restart button", async () => {
+    const { AgentTable } = await import("../src/ts/components/AgentTable.tsx");
+    const onAction = vi.fn();
+    await act(async () => {
+      render(
+        <AgentTable
+          agents={[
+            {
+              id: "e1",
+              name: "broken",
+              profile: "p",
+              tenant_id: "t",
+              status: "errored",
+              uptime_seconds: 0,
+            },
+          ]}
+          onAction={onAction}
+        />,
+      );
+    });
+    expect(screen.getByTestId("restart-e1")).toHaveTextContent("Restart");
+  });
+});
+
+describe("isPanelVisible", () => {
+  test("returns true for the selected tab in a tab-layout", () => {
+    expect(
+      isPanelVisible(
+        { type: "tab-layout", tabs: ["a", "b"], selected: 1 },
+        "b",
+      ),
+    ).toBe(true);
+  });
+
+  test("returns false for a non-selected tab in a tab-layout", () => {
+    expect(
+      isPanelVisible(
+        { type: "tab-layout", tabs: ["a", "b"], selected: 1 },
+        "a",
+      ),
+    ).toBe(false);
+  });
+
+  test("recurses into split-layout children", () => {
+    const tree = {
+      type: "split-layout",
+      orientation: "horizontal",
+      sizes: [0.5, 0.5],
+      children: [
+        { type: "tab-layout", tabs: ["a"], selected: 0 },
+        { type: "tab-layout", tabs: ["b", "c"], selected: 0 },
+      ],
+    };
+    expect(isPanelVisible(tree, "a")).toBe(true);
+    expect(isPanelVisible(tree, "b")).toBe(true);
+    expect(isPanelVisible(tree, "c")).toBe(false);
+    expect(isPanelVisible(tree, "missing")).toBe(false);
+  });
+
+  test("returns false for absent panel", () => {
+    expect(
+      isPanelVisible({ type: "tab-layout", tabs: ["a"], selected: 0 }, "z"),
+    ).toBe(false);
+  });
 });
 
 describe("ActivityFeed", () => {
@@ -330,6 +459,98 @@ describe("LaunchDialog", () => {
     expect(screen.getByTestId("np-command")).toBeInTheDocument();
     expect(screen.queryByTestId("np-model")).not.toBeInTheDocument();
   });
+
+  test("provider with base_url exposes editable Base URL field", async () => {
+    const api = await import("../src/ts/api.ts");
+    const fetchSpy = api.fetchProviders as ReturnType<typeof vi.fn>;
+    const original = fetchSpy.getMockImplementation();
+    fetchSpy.mockResolvedValue([
+      {
+        id: "lmstudio",
+        name: "LM Studio",
+        base_url: "http://localhost:1234/v1",
+        online: true,
+        models: [{ id: "qwen/qwen3-coder", name: "qwen/qwen3-coder" }],
+      },
+    ]);
+    try {
+      await act(async () => {
+        render(<App />);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("open-launch"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-profile-toggle"));
+      });
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("np-provider"), {
+          target: { value: "lmstudio" },
+        });
+      });
+
+      const baseUrlInput = screen.getByTestId(
+        "np-base-url",
+      ) as HTMLInputElement;
+      expect(baseUrlInput).toBeInTheDocument();
+      expect(baseUrlInput.value).toBe("http://localhost:1234/v1");
+    } finally {
+      if (original) fetchSpy.mockImplementation(original);
+    }
+  });
+
+  test("creating an LM Studio profile sends base_url to the server", async () => {
+    const api = await import("../src/ts/api.ts");
+    const fetchSpy = api.fetchProviders as ReturnType<typeof vi.fn>;
+    const original = fetchSpy.getMockImplementation();
+    fetchSpy.mockResolvedValue([
+      {
+        id: "lmstudio",
+        name: "LM Studio",
+        base_url: "http://localhost:1234/v1",
+        online: true,
+        models: [{ id: "qwen/qwen3-coder", name: "qwen/qwen3-coder" }],
+      },
+    ]);
+    const createSpy = api.createProfile as ReturnType<typeof vi.fn>;
+    createSpy.mockClear();
+    try {
+      await act(async () => {
+        render(<App />);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("open-launch"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-profile-toggle"));
+      });
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("np-name"), {
+          target: { value: "lm" },
+        });
+      });
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("np-provider"), {
+          target: { value: "lmstudio" },
+        });
+      });
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("np-model"), {
+          target: { value: "qwen/qwen3-coder" },
+        });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("create-and-launch"));
+      });
+
+      expect(createSpy).toHaveBeenCalled();
+      const payload = createSpy.mock.calls[0][0];
+      expect(payload.llm_provider).toBe("lmstudio");
+      expect(payload.base_url).toBe("http://localhost:1234/v1");
+    } finally {
+      if (original) fetchSpy.mockImplementation(original);
+    }
+  });
 });
 
 describe("RegularLayout", () => {
@@ -404,6 +625,126 @@ describe("RegularLayout", () => {
     });
     // Should not crash — mock methods are no-ops
     expect(screen.getByTestId("langley-app")).toBeInTheDocument();
+  });
+
+  test("clicking the same nav tab twice does not duplicate panels", async () => {
+    await act(async () => {
+      render(<App />);
+    });
+    const layoutEl = screen.getByTestId("layout-container") as HTMLElement & {
+      getPanel: (n: string) => unknown;
+      insertPanel: (n: string) => void;
+    };
+
+    // Open chat
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("tab-chat"));
+    });
+    expect(layoutEl.getPanel("chat")).not.toBeNull();
+
+    // Spy on insertPanel; clicking again on an active panel should remove
+    // (toggle), not insert a second copy.
+    const insertSpy = vi.spyOn(layoutEl, "insertPanel");
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("tab-chat"));
+    });
+    expect(insertSpy).not.toHaveBeenCalled();
+    expect(layoutEl.getPanel("chat")).toBeNull();
+  });
+
+  test("status panel is not duplicated when default-inserted by initial route", async () => {
+    await act(async () => {
+      render(<App />);
+    });
+    const layoutEl = screen.getByTestId("layout-container") as HTMLElement & {
+      getPanel: (n: string) => unknown;
+      insertPanel: (n: string) => void;
+    };
+    // Status should be present exactly once after mount.
+    expect(layoutEl.getPanel("status")).not.toBeNull();
+
+    const insertSpy = vi.spyOn(layoutEl, "insertPanel");
+    // Clicking the status nav tab while status is active should remove,
+    // not duplicate.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("tab-status"));
+    });
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  test("pointercancel scrubs stale .overlay class from layout children", async () => {
+    await act(async () => {
+      render(<App />);
+    });
+    const layoutEl = screen.getByTestId("layout-container") as HTMLElement;
+    // Simulate the regular-layout 0.4 bug: a frame is left with the
+    // ".overlay" class because the lib's clear(null, ...) early-returned.
+    const ghost = document.createElement("regular-layout-frame");
+    ghost.setAttribute("name", "status");
+    ghost.classList.add("overlay");
+    layoutEl.appendChild(ghost);
+
+    expect(ghost.classList.contains("overlay")).toBe(true);
+
+    await act(async () => {
+      window.dispatchEvent(new Event("pointercancel"));
+      // setTimeout(0) inside the cleanup needs the timer to advance
+      vi.advanceTimersByTime(5);
+    });
+
+    expect(ghost.classList.contains("overlay")).toBe(false);
+  });
+
+  test("clicking nav tab brings hidden panel to foreground instead of closing it", async () => {
+    await act(async () => {
+      render(<App />);
+    });
+    const layoutEl = screen.getByTestId("layout-container") as HTMLElement & {
+      save: () => unknown;
+      restore: (t: unknown) => void;
+      insertPanel: (n: string) => void;
+      removePanel: (n: string) => void;
+      getPanel: (n: string) => unknown;
+    };
+    // Start: status only. Open chat — it becomes the selected tab and status
+    // is now hidden behind it (single tab-layout in the mock).
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("tab-chat"));
+    });
+    const tree = layoutEl.save() as {
+      tabs: string[];
+      selected: number;
+    };
+    expect(tree.tabs).toContain("status");
+    expect(tree.tabs[tree.selected]).toBe("chat");
+
+    const removeSpy = vi.spyOn(layoutEl, "removePanel");
+    const restoreSpy = vi.spyOn(layoutEl, "restore");
+    // Now click status — it should foreground, NOT remove.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("tab-status"));
+    });
+    expect(removeSpy).not.toHaveBeenCalled();
+    expect(restoreSpy).toHaveBeenCalled();
+    const after = layoutEl.save() as {
+      tabs: string[];
+      selected: number;
+    };
+    expect(after.tabs[after.selected]).toBe("status");
+  });
+
+  test("clicking nav tab on the visible panel closes it", async () => {
+    await act(async () => {
+      render(<App />);
+    });
+    const layoutEl = screen.getByTestId("layout-container") as HTMLElement & {
+      getPanel: (n: string) => unknown;
+    };
+    expect(layoutEl.getPanel("status")).not.toBeNull();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("tab-status"));
+    });
+    expect(layoutEl.getPanel("status")).toBeNull();
   });
 });
 
@@ -533,32 +874,71 @@ describe("extractPanelNames", () => {
     expect(extractPanelNames(layout).size).toBe(0);
   });
 
-  test("ignores child-panel when child is not an array", () => {
-    const layout = { type: "child-panel", child: "status" };
-    expect(extractPanelNames(layout).size).toBe(0);
+  test("accepts a single-string tabs/child value (regular-layout 0.4 form)", () => {
+    // The 0.4 schema shows `{ type: "tab-layout", tabs: "sidebar" }` in
+    // its docs as a valid form, so we accept a bare string in both
+    // schema spellings.
+    expect(extractPanelNames({ type: "child-panel", child: "status" })).toEqual(
+      new Set(["status"]),
+    );
+    expect(extractPanelNames({ type: "tab-layout", tabs: "status" })).toEqual(
+      new Set(["status"]),
+    );
   });
 
   test("does not use a 'tabs' field (regression for infinite recursion bug)", () => {
-    // The old buggy code used n.tabs instead of n.child.  A layout with the
-    // correct `child` field but no `tabs` field must still be parsed.
-    const layout = {
-      type: "child-panel",
-      child: ["status"],
-      selected: 0,
-    };
-    const names = extractPanelNames(layout);
-    expect(names.size).toBe(1);
-    expect(names.has("status")).toBe(true);
+    // Both 0.2-era (`child-panel` + `child`) and 0.4-era
+    // (`tab-layout` + `tabs`) schemas must be recognized.  The bug this
+    // test guards against: forgetting to update extractPanelNames after
+    // the regular-layout schema rename, which causes detectEmpty=true,
+    // which triggers re-insert "status" forever, which causes either an
+    // infinite loop (RESULT_CODE_HUNG) or duplicate tabs.
+    expect(
+      extractPanelNames({
+        type: "child-panel",
+        child: ["status"],
+        selected: 0,
+      }),
+    ).toEqual(new Set(["status"]));
 
-    // Ensure a layout that has *only* a `tabs` field is NOT recognized.
-    // This catches if someone accidentally re-introduces the old bug.
-    const buggyLayout = {
-      type: "child-panel",
-      tabs: ["status"],
-      selected: 0,
-    } as unknown;
-    const buggyNames = extractPanelNames(buggyLayout);
-    expect(buggyNames.size).toBe(0);
+    expect(
+      extractPanelNames({
+        type: "tab-layout",
+        tabs: ["status"],
+        selected: 0,
+      }),
+    ).toEqual(new Set(["status"]));
+  });
+
+  test("recognizes the 0.4 'tab-layout' / 'tabs' schema", () => {
+    expect(
+      extractPanelNames({
+        type: "tab-layout",
+        tabs: ["status", "chat", "logs"],
+        selected: 1,
+      }),
+    ).toEqual(new Set(["status", "chat", "logs"]));
+  });
+
+  test("recognizes the 0.4 'split-layout' schema", () => {
+    const layout = {
+      type: "split-layout",
+      orientation: "horizontal",
+      children: [
+        { type: "tab-layout", tabs: ["status"] },
+        { type: "tab-layout", tabs: ["chat", "logs"] },
+      ],
+      sizes: [0.5, 0.5],
+    };
+    expect(extractPanelNames(layout)).toEqual(
+      new Set(["status", "chat", "logs"]),
+    );
+  });
+
+  test("recognizes a 0.4 tab-layout with single string tabs value", () => {
+    expect(extractPanelNames({ type: "tab-layout", tabs: "status" })).toEqual(
+      new Set(["status"]),
+    );
   });
 });
 

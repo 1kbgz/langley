@@ -3,8 +3,11 @@
 Provides CRUD endpoints for tenants, agents, profiles, messages, and audit.
 """
 
+import asyncio
 import json
 import logging
+import os
+import time
 from typing import Any
 
 from starlette.applications import Starlette
@@ -249,7 +252,7 @@ async def update_profile(request: Request) -> Response:
         return _error("Profile not found", 404)
     data = await _body(request)
     # Apply updates to existing profile fields
-    for field in ("name", "llm_provider", "model", "system_prompt", "command", "environment", "tags", "tenant_id"):
+    for field in ("name", "llm_provider", "model", "base_url", "system_prompt", "command", "environment", "tags", "tenant_id"):
         if field in data:
             setattr(existing, field, data[field])
     saved = state.profile_store.save(existing)
@@ -387,6 +390,45 @@ def _token_billing(input_per_mtok: float, output_per_mtok: float) -> dict[str, A
     }
 
 
+def _free_billing() -> dict[str, Any]:
+    """Build a billing dict for a free / local provider."""
+    return {"type": "free"}
+
+
+def _discover_lmstudio_models(base_url: str) -> list[dict[str, Any]] | None:
+    """Query an LM Studio (or any OpenAI-compatible) ``/models`` endpoint.
+
+    Returns ``None`` when the server is unreachable so the caller can decide
+    whether to surface an offline placeholder or omit the entry entirely.
+
+    .. warning::
+        This is a *blocking* call.  Always invoke it via
+        ``asyncio.to_thread`` from async route handlers to avoid stalling
+        the event loop on the connect timeout when LM Studio is offline.
+    """
+    import json
+    import urllib.error
+    import urllib.request
+
+    url = base_url.rstrip("/") + "/models"
+    try:
+        with urllib.request.urlopen(url, timeout=0.5) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return None
+
+    items = payload.get("data") or payload.get("models") or []
+    models: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        mid = item.get("id") or item.get("name")
+        if not mid:
+            continue
+        models.append({"id": mid, "name": item.get("name") or mid, "billing": _free_billing()})
+    return models
+
+
 # Static fallback for GitHub Copilot when the SDK is unavailable.
 # Multipliers sourced from https://docs.github.com/en/copilot/concepts/billing/copilot-requests#model-multipliers
 _COPILOT_FALLBACK_MODELS = [
@@ -408,93 +450,139 @@ _COPILOT_FALLBACK_MODELS = [
 ]
 
 
-async def list_providers(request: Request) -> Response:
-    """Return available LLM providers and their models.
+# Static (non-live-discovered) provider entries.  Pricing sourced from
+# provider websites as of March 2026.
+_STATIC_PROVIDERS: list[dict[str, Any]] = [
+    {
+        "id": "openai",
+        "name": "OpenAI",
+        "models": [
+            {"id": "gpt-5.4", "name": "GPT-5.4", "billing": _token_billing(2.50, 15.00)},
+            {"id": "gpt-5-mini", "name": "GPT-5 mini", "billing": _token_billing(0.25, 2.00)},
+            {"id": "gpt-4.1", "name": "GPT-4.1", "billing": _token_billing(2.00, 8.00)},
+            {"id": "gpt-4.1-mini", "name": "GPT-4.1 mini", "billing": _token_billing(0.40, 1.60)},
+            {"id": "gpt-4.1-nano", "name": "GPT-4.1 nano", "billing": _token_billing(0.10, 0.40)},
+            {"id": "o4-mini", "name": "o4-mini", "billing": _token_billing(1.10, 4.40)},
+        ],
+    },
+    {
+        "id": "anthropic",
+        "name": "Anthropic",
+        "models": [
+            {"id": "claude-opus-4-6", "name": "Claude Opus 4.6", "billing": _token_billing(5.00, 25.00)},
+            {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "billing": _token_billing(3.00, 15.00)},
+            {"id": "claude-haiku-4-5", "name": "Claude Haiku 4.5", "billing": _token_billing(1.00, 5.00)},
+        ],
+    },
+    {
+        "id": "google",
+        "name": "Google",
+        "models": [
+            {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "billing": _token_billing(1.25, 10.00)},
+            {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "billing": _token_billing(0.30, 2.50)},
+            {"id": "gemini-3-pro-preview", "name": "Gemini 3 Pro Preview", "billing": _token_billing(2.00, 12.00)},
+            {"id": "gemini-3-flash-preview", "name": "Gemini 3 Flash Preview", "billing": _token_billing(0.50, 3.00)},
+        ],
+    },
+]
 
-    Attempts to query the copilot CLI for live model data; falls back to a
-    static list when the CLI is unavailable.  Each model includes billing
-    information so the UI can display costs.
+
+# In-memory cache for the providers payload.  Live discovery is expensive
+# (the Copilot SDK can take seconds to start, LM Studio probing blocks on a
+# socket connect timeout when offline) and the UI re-polls /api/providers
+# from multiple components, so we serve a cached copy for a short window.
+_PROVIDERS_CACHE_TTL_SECONDS = 30.0
+_providers_cache: dict[str, Any] = {"value": None, "expires_at": 0.0}
+
+
+def _providers_cache_get() -> list[dict[str, Any]] | None:
+    if _providers_cache["value"] is not None and _providers_cache["expires_at"] > time.monotonic():
+        return _providers_cache["value"]
+    return None
+
+
+def _providers_cache_set(value: list[dict[str, Any]]) -> None:
+    _providers_cache["value"] = value
+    _providers_cache["expires_at"] = time.monotonic() + _PROVIDERS_CACHE_TTL_SECONDS
+
+
+async def _discover_copilot_models() -> list[dict[str, Any]] | None:
+    """Best-effort live model lookup via the Copilot SDK.
+
+    Returns ``None`` if the SDK is unavailable or the lookup fails / takes
+    longer than a few seconds.  Bounded by a hard timeout so a hung copilot
+    CLI can never stall the API server.
     """
-    providers: list[dict[str, Any]] = []
 
-    # Try to get live model list from copilot CLI
-    try:
-        from copilot import CopilotClient
+    async def _do() -> list[dict[str, Any]]:
+        from copilot import CopilotClient  # optional
 
         client = CopilotClient()
         await client.start()
         try:
             models = await client.list_models()
-            copilot_models = []
+            out: list[dict[str, Any]] = []
             for m in models:
                 multiplier = 1.0
                 if m.billing:
                     multiplier = getattr(m.billing, "multiplier", 1.0)
-                copilot_models.append(
+                out.append(
                     {
                         "id": m.id,
                         "name": getattr(m, "name", m.id),
                         "billing": _copilot_billing(multiplier),
                     }
                 )
-            if copilot_models:
-                providers.append(
-                    {
-                        "id": "github-copilot",
-                        "name": "GitHub Copilot",
-                        "models": copilot_models,
-                    }
-                )
+            return out
         finally:
             await client.stop()
-    except Exception:
-        # Copilot CLI not available — use static fallback
-        providers.append(
-            {
-                "id": "github-copilot",
-                "name": "GitHub Copilot",
-                "models": list(_COPILOT_FALLBACK_MODELS),
-            }
-        )
 
-    # Static entries for other providers (no live discovery yet).
-    # Pricing sourced from provider websites as of March 2026.
-    providers.extend(
-        [
-            {
-                "id": "openai",
-                "name": "OpenAI",
-                "models": [
-                    {"id": "gpt-5.4", "name": "GPT-5.4", "billing": _token_billing(2.50, 15.00)},
-                    {"id": "gpt-5-mini", "name": "GPT-5 mini", "billing": _token_billing(0.25, 2.00)},
-                    {"id": "gpt-4.1", "name": "GPT-4.1", "billing": _token_billing(2.00, 8.00)},
-                    {"id": "gpt-4.1-mini", "name": "GPT-4.1 mini", "billing": _token_billing(0.40, 1.60)},
-                    {"id": "gpt-4.1-nano", "name": "GPT-4.1 nano", "billing": _token_billing(0.10, 0.40)},
-                    {"id": "o4-mini", "name": "o4-mini", "billing": _token_billing(1.10, 4.40)},
-                ],
-            },
-            {
-                "id": "anthropic",
-                "name": "Anthropic",
-                "models": [
-                    {"id": "claude-opus-4-6", "name": "Claude Opus 4.6", "billing": _token_billing(5.00, 25.00)},
-                    {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "billing": _token_billing(3.00, 15.00)},
-                    {"id": "claude-haiku-4-5", "name": "Claude Haiku 4.5", "billing": _token_billing(1.00, 5.00)},
-                ],
-            },
-            {
-                "id": "google",
-                "name": "Google",
-                "models": [
-                    {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "billing": _token_billing(1.25, 10.00)},
-                    {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "billing": _token_billing(0.30, 2.50)},
-                    {"id": "gemini-3-pro-preview", "name": "Gemini 3 Pro Preview", "billing": _token_billing(2.00, 12.00)},
-                    {"id": "gemini-3-flash-preview", "name": "Gemini 3 Flash Preview", "billing": _token_billing(0.50, 3.00)},
-                ],
-            },
-        ]
+    try:
+        return await asyncio.wait_for(_do(), timeout=3.0)
+    except Exception:
+        return None
+
+
+async def list_providers(request: Request) -> Response:
+    """Return available LLM providers and their models.
+
+    Live discovery (Copilot CLI, LM Studio) is run off-thread and cached for
+    a short window so repeated UI polls don't block the event loop.
+    """
+    cached = _providers_cache_get()
+    if cached is not None:
+        return _json({"providers": cached})
+
+    # Run blocking discovery in worker threads, in parallel.
+    copilot_task = asyncio.create_task(_discover_copilot_models())
+    lmstudio_base = os.environ.get("LANGLEY_LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
+    lmstudio_task = asyncio.create_task(asyncio.to_thread(_discover_lmstudio_models, lmstudio_base))
+
+    copilot_models = await copilot_task
+    lmstudio_models = await lmstudio_task
+
+    providers: list[dict[str, Any]] = []
+    providers.append(
+        {
+            "id": "github-copilot",
+            "name": "GitHub Copilot",
+            "models": copilot_models if copilot_models else list(_COPILOT_FALLBACK_MODELS),
+        }
     )
 
+    providers.extend(_STATIC_PROVIDERS)
+
+    providers.append(
+        {
+            "id": "lmstudio",
+            "name": "LM Studio",
+            "base_url": lmstudio_base,
+            "online": lmstudio_models is not None,
+            "models": lmstudio_models or [],
+        }
+    )
+
+    _providers_cache_set(providers)
     return _json({"providers": providers})
 
 

@@ -66,6 +66,7 @@ class AgentProfile:
     command: list[str] = field(default_factory=list)
     llm_provider: str = ""
     model: str = ""
+    base_url: str = ""
     system_prompt: str = ""
     tools: list[str] = field(default_factory=list)
     environment: dict[str, str] = field(default_factory=dict)

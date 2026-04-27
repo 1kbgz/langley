@@ -94,7 +94,10 @@ function outboxToChatMessages(
   return result;
 }
 
-/** Merge two ChatMessage arrays by id, sort by timestamp. */
+// Hard cap on chat history to keep React from choking on long sessions.
+const MAX_CHAT_MESSAGES = 500;
+
+/** Merge two ChatMessage arrays by id, sort by timestamp, cap to last N. */
 function mergeMessages(
   existing: ChatMessage[],
   incoming: ChatMessage[],
@@ -102,7 +105,12 @@ function mergeMessages(
   const map = new Map<string, ChatMessage>();
   for (const m of existing) map.set(m.id, m);
   for (const m of incoming) map.set(m.id, m);
-  return Array.from(map.values()).sort((a, b) => a.timestamp - b.timestamp);
+  const merged = Array.from(map.values()).sort(
+    (a, b) => a.timestamp - b.timestamp,
+  );
+  return merged.length > MAX_CHAT_MESSAGES
+    ? merged.slice(merged.length - MAX_CHAT_MESSAGES)
+    : merged;
 }
 
 /** Single chat message with markdown rendering and raw toggle. */
@@ -159,7 +167,7 @@ export function ChatPanel({
   const pendingContentRef = useRef("");
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, []);
 
   // Reset state when agent changes

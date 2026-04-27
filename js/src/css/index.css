@@ -1241,6 +1241,8 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
+  overflow: auto;
 }
 .langley-inspector-header {
   display: flex;
