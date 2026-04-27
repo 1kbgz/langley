@@ -54,7 +54,14 @@ export function MessageInspectorTab() {
           for (const msg of msgs) {
             if (msg.sequence > seqRef.current) seqRef.current = msg.sequence;
           }
-          setMessages((prev) => [...prev, ...msgs]);
+          setMessages((prev) => {
+            const merged = [...prev, ...msgs];
+            // Cap to last 500 to prevent unbounded growth (LM Studio agents
+            // can emit hundreds of token-delta messages per second).
+            return merged.length > 500
+              ? merged.slice(merged.length - 500)
+              : merged;
+          });
         }
       } catch {
         /* non-critical */
@@ -68,7 +75,7 @@ export function MessageInspectorTab() {
   // Auto-scroll
   useEffect(() => {
     if (autoScroll) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
   }, [messages, autoScroll]);
 

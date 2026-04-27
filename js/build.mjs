@@ -22,17 +22,17 @@ async function build() {
   await bundle_css();
 
   // Copy HTML
-  cpy("src/html/*", "dist/");
+  await cpy("src/html/*", "dist/");
 
   // Copy images
   fs.mkdirSync("dist/img", { recursive: true });
-  cpy("src/img/*", "dist/img");
+  await cpy("src/img/*", "dist/img");
 
   await Promise.all(BUNDLES.map(bundle)).catch(() => process.exit(1));
 
   // Copy servable assets to python extension (exclude esm/)
   fs.mkdirSync("../langley/extension", { recursive: true });
-  cpy("dist/**/*", "../langley/extension", {
+  await cpy("dist/**/*", "../langley/extension", {
     filter: (file) => !file.relativePath.startsWith("esm"),
   });
 }

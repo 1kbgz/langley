@@ -184,6 +184,8 @@ class AgentProcessManager:
             env["LANGLEY_MODEL"] = info.profile.model
         if info.profile.system_prompt:
             env["LANGLEY_SYSTEM_PROMPT"] = info.profile.system_prompt
+        if info.profile.base_url:
+            env["LANGLEY_LLM_BASE_URL"] = info.profile.base_url
 
         # Profile-defined environment
         env.update(info.profile.environment)

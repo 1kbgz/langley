@@ -156,6 +156,17 @@ export function AgentTable({
                     </button>
                   </div>
                 )}
+                {(agent.status === "stopped" || agent.status === "errored") && (
+                  <div className="langley-actions">
+                    <button
+                      className="langley-btn langley-btn-primary"
+                      data-testid={`restart-${agent.id}`}
+                      onClick={() => onAction?.(agent.id, "restart")}
+                    >
+                      Restart
+                    </button>
+                  </div>
+                )}
               </td>
             </tr>
           ))}

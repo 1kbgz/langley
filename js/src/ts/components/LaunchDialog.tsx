@@ -43,6 +43,7 @@ export function LaunchDialog({
   const [newModel, setNewModel] = useState("");
   const [newSystemPrompt, setNewSystemPrompt] = useState("");
   const [newCommand, setNewCommand] = useState("");
+  const [newBaseUrl, setNewBaseUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -57,6 +58,16 @@ export function LaunchDialog({
     (m) => m.id === newModel,
   )?.billing;
   const isLLMProvider = newProvider && newProvider !== "custom";
+  // Providers like LM Studio expose a base_url; auto-fill it when picked.
+  const providerHasBaseUrl = !!selectedProviderInfo?.base_url;
+
+  useEffect(() => {
+    if (selectedProviderInfo?.base_url) {
+      setNewBaseUrl(selectedProviderInfo.base_url);
+    } else {
+      setNewBaseUrl("");
+    }
+  }, [newProvider, selectedProviderInfo]);
 
   useEffect(() => {
     fetchProviders()
@@ -89,6 +100,7 @@ export function LaunchDialog({
         llm_provider: newProvider === "custom" ? "" : newProvider,
         model: newModel,
         system_prompt: newSystemPrompt,
+        base_url: providerHasBaseUrl ? newBaseUrl : "",
       });
       onLaunch(profile.id);
     } catch (err) {
@@ -246,6 +258,20 @@ export function LaunchDialog({
                     onChange={(e) => setNewCommand(e.target.value)}
                     placeholder="python agent.py"
                     data-testid="np-command"
+                  />
+                </>
+              )}
+
+              {providerHasBaseUrl && (
+                <>
+                  <label htmlFor="np-base-url">Base URL</label>
+                  <input
+                    id="np-base-url"
+                    type="text"
+                    value={newBaseUrl}
+                    onChange={(e) => setNewBaseUrl(e.target.value)}
+                    placeholder="http://localhost:1234/v1"
+                    data-testid="np-base-url"
                   />
                 </>
               )}

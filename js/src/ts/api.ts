@@ -341,6 +341,10 @@ export interface ProviderInfo {
   id: string;
   name: string;
   models: ProviderModel[];
+  /** Endpoint URL (only for OpenAI-compatible providers like LM Studio). */
+  base_url?: string;
+  /** Whether the discovery probe succeeded. */
+  online?: boolean;
 }
 
 export async function fetchProviders(): Promise<ProviderInfo[]> {
