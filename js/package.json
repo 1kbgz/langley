@@ -54,7 +54,7 @@
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.1.0",
     "cpy": "^13.2.2",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "http-server": "^14.1.1",
     "jsdom": "^29.1.1",
     "lightningcss": "^1.29.3",
