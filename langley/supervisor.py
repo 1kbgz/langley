@@ -399,9 +399,7 @@ class AgentProcessManager:
         """Determine if an agent should be restarted based on its restart policy."""
         if info.restart_policy == RestartPolicy.ALWAYS:
             return True
-        if info.restart_policy == RestartPolicy.ON_FAILURE and info.exit_code != 0:
-            return True
-        return False
+        return bool(info.restart_policy == RestartPolicy.ON_FAILURE and info.exit_code != 0)
 
     def start_monitor(self) -> None:
         """Start background thread that periodically polls agents."""

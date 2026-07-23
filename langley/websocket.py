@@ -133,7 +133,7 @@ class WebSocketSession:
         if not self._closed:
             try:
                 await self.ws.send_json(data)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 self._closed = True
 
     async def _send_error(self, message: str) -> None:

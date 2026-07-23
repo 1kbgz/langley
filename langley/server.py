@@ -539,7 +539,7 @@ async def _discover_copilot_models() -> list[dict[str, Any]] | None:
 
     try:
         return await asyncio.wait_for(_do(), timeout=3.0)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return None
 
 

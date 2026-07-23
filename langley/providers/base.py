@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 
 @dataclass
@@ -55,7 +56,7 @@ class LLMProvider(ABC):
         Default is a no-op; providers that want to greet the user on launch
         should override this.
         """
-        return None
+        return
 
     @abstractmethod
     async def stop(self) -> None:

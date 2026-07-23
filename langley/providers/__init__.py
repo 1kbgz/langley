@@ -29,4 +29,4 @@ def get_provider(name: str) -> type[LLMProvider]:
     raise KeyError(f"Unknown LLM provider: {name!r}")
 
 
-__all__ = ["LLMProvider", "ProviderConfig", "OpenAICompatibleProvider", "get_provider"]
+__all__ = ["LLMProvider", "OpenAICompatibleProvider", "ProviderConfig", "get_provider"]

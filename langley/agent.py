@@ -12,8 +12,9 @@ Configuration is read from environment variables set by the process manager:
 import logging
 import os
 import threading
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from typing import Any, Callable, Iterator
+from typing import Any
 
 from langley.models import CheckpointData, Message, _new_id, _now
 from langley.transport import FileMessageTransport, MessageTransport, Subscription

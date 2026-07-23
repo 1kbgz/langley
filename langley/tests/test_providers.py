@@ -6,6 +6,7 @@ import asyncio
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import ClassVar
 
 import pytest
 
@@ -52,7 +53,7 @@ class TestProviderDispatch:
 class _StubHandler(BaseHTTPRequestHandler):
     """Minimal LM Studio-style chat completions stub."""
 
-    chunks: list[str] = []
+    chunks: ClassVar[list[str]] = []
 
     def log_message(self, *args, **kwargs):  # silence
         pass
@@ -68,7 +69,7 @@ class _StubHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/event-stream")
         self.end_headers()
         for c in self.chunks:
-            self.wfile.write(f"data: {c}\n\n".encode("utf-8"))
+            self.wfile.write(f"data: {c}\n\n".encode())
         self.wfile.write(b"data: [DONE]\n\n")
 
 

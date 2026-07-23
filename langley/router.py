@@ -5,7 +5,8 @@ duplicate detection.
 """
 
 import threading
-from typing import Any, Callable, Iterator
+from collections.abc import Callable, Iterator
+from typing import Any
 
 from langley.models import Message, MessageReceipt, _new_id, _now
 from langley.transport import MessageTransport, Subscription
@@ -187,7 +188,7 @@ class MessageRouter:
         )
         try:
             self._transport.send(DEAD_LETTER_CHANNEL, dl_msg)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass  # best-effort
 
     def get_dead_letters(self, from_seq: int = 0) -> Iterator[Message]:
