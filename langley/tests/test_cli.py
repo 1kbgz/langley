@@ -14,7 +14,7 @@ class TestMain:
         """Bare `langley` should default to `langley up`."""
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
+        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:  # noqa: SIM117
             with patch.object(cli_mod, "signal") as mock_signal:
                 mock_signal.pause.side_effect = KeyboardInterrupt
                 ret = main([])
@@ -32,7 +32,7 @@ class TestUpCommand:
         """langley up starts only the API server."""
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
+        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:  # noqa: SIM117
             with patch.object(cli_mod, "signal") as mock_signal:
                 mock_signal.pause.side_effect = KeyboardInterrupt
                 with caplog.at_level("INFO", logger="langley.cli"):
@@ -47,7 +47,7 @@ class TestDevCommand:
         """Start API server and immediately shut it down."""
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_find_js_dir", return_value=Path("/fake/js")):
+        with patch.object(cli_mod, "_find_js_dir", return_value=Path("/fake/js")):  # noqa: SIM117
             with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
                 with patch.object(cli_mod, "signal") as mock_signal:
                     mock_signal.pause.side_effect = KeyboardInterrupt
@@ -115,9 +115,8 @@ class TestAgentCommands:
     def test_agent_list_empty(self, caplog):
         import langley.cli as cli_mod
 
-        with self._mock_api(cli_mod, []):
-            with caplog.at_level("INFO", logger="langley.cli"):
-                ret = main(["agent", "list"])
+        with self._mock_api(cli_mod, []), caplog.at_level("INFO", logger="langley.cli"):
+            ret = main(["agent", "list"])
         assert ret == 0
         assert "No agents" in caplog.text
 
@@ -127,9 +126,8 @@ class TestAgentCommands:
         agents = [
             {"agent_id": "abc-123", "status": "running", "profile_name": "test-prof", "pid": 12345, "uptime_seconds": 60},
         ]
-        with self._mock_api(cli_mod, agents):
-            with caplog.at_level("INFO", logger="langley.cli"):
-                ret = main(["agent", "list"])
+        with self._mock_api(cli_mod, agents), caplog.at_level("INFO", logger="langley.cli"):
+            ret = main(["agent", "list"])
         assert ret == 0
         assert "abc-123" in caplog.text
         assert "running" in caplog.text
@@ -138,9 +136,11 @@ class TestAgentCommands:
     def test_agent_launch_with_profile_id(self, caplog):
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_api_request", return_value={"agent_id": "new-1", "status": "starting"}) as mock_req:
-            with caplog.at_level("INFO", logger="langley.cli"):
-                ret = main(["agent", "launch", "--profile-id", "prof-1"])
+        with (
+            patch.object(cli_mod, "_api_request", return_value={"agent_id": "new-1", "status": "starting"}) as mock_req,
+            caplog.at_level("INFO", logger="langley.cli"),
+        ):
+            ret = main(["agent", "launch", "--profile-id", "prof-1"])
         assert ret == 0
         mock_req.assert_called_once_with("http://127.0.0.1:8000", "POST", "/api/agents", {"profile_id": "prof-1"})
         assert "new-1" in caplog.text
@@ -161,9 +161,8 @@ class TestAgentCommands:
     def test_agent_stop(self, caplog):
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_api_request", return_value={}) as mock_req:
-            with caplog.at_level("INFO", logger="langley.cli"):
-                ret = main(["agent", "stop", "agent-xyz"])
+        with patch.object(cli_mod, "_api_request", return_value={}) as mock_req, caplog.at_level("INFO", logger="langley.cli"):
+            ret = main(["agent", "stop", "agent-xyz"])
         assert ret == 0
         mock_req.assert_called_once_with("http://127.0.0.1:8000", "POST", "/api/agents/agent-xyz/stop")
         assert "agent-xyz" in caplog.text
@@ -171,9 +170,8 @@ class TestAgentCommands:
     def test_agent_kill(self, caplog):
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_api_request", return_value={}) as mock_req:
-            with caplog.at_level("INFO", logger="langley.cli"):
-                ret = main(["agent", "kill", "agent-xyz"])
+        with patch.object(cli_mod, "_api_request", return_value={}) as mock_req, caplog.at_level("INFO", logger="langley.cli"):
+            ret = main(["agent", "kill", "agent-xyz"])
         assert ret == 0
         mock_req.assert_called_once_with("http://127.0.0.1:8000", "POST", "/api/agents/agent-xyz/kill")
         assert "agent-xyz" in caplog.text
@@ -197,7 +195,7 @@ class TestConfigIntegration:
 
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
+        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:  # noqa: SIM117
             with patch.object(cli_mod, "signal") as mock_signal:
                 mock_signal.pause.side_effect = KeyboardInterrupt
                 with caplog.at_level("INFO", logger="langley.cli"):
@@ -212,7 +210,7 @@ class TestConfigIntegration:
 
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
+        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:  # noqa: SIM117
             with patch.object(cli_mod, "signal") as mock_signal:
                 mock_signal.pause.side_effect = KeyboardInterrupt
                 ret = main(["--config", str(cfg_path), "up", "--port", "7777", "--auth", "none", "--data-dir", str(tmp_path)])
@@ -223,7 +221,7 @@ class TestConfigIntegration:
         """--auth flag works without a config file."""
         import langley.cli as cli_mod
 
-        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:
+        with patch.object(cli_mod, "_start_api_server", return_value=MagicMock()) as mock_start:  # noqa: SIM117
             with patch.object(cli_mod, "signal") as mock_signal:
                 mock_signal.pause.side_effect = KeyboardInterrupt
                 ret = main(["up", "--auth", "local", "--data-dir", str(tmp_path)])

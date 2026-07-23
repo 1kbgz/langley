@@ -1,4 +1,4 @@
-from langley import *  # noqa
+from langley import *
 
 
 def test_all():

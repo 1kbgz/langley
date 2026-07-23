@@ -313,11 +313,12 @@ class MacAuthProvider(_OsAuthProvider):
             logger.error("MacAuthProvider is only supported on macOS")
             return False
         try:
-            import subprocess  # noqa: S404
+            import subprocess
 
-            result = subprocess.run(  # noqa: S603
+            result = subprocess.run(
                 ["/usr/bin/dscl", "/Local/Default", "-authonly", username, password],
                 capture_output=True,
+                check=False,
             )
             return result.returncode == 0
         except Exception:
@@ -347,7 +348,7 @@ class Win32AuthProvider(_OsAuthProvider):
         except ImportError:
             logger.error("pywin32 is not installed — run `pip install pywin32`")
             return False
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
 
 

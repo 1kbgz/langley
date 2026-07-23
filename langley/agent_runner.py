@@ -103,7 +103,7 @@ class AgentRunner:
 
             try:
                 await asyncio.wait_for(self._shutdown.wait(), timeout=0.5)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
 
     async def stop(self) -> None:

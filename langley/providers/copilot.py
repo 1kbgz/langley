@@ -60,7 +60,7 @@ class CopilotProvider(LLMProvider):
         try:
             await self._session.send_and_wait({"prompt": "Begin."}, timeout=300)
             self._publish({"type": "turn_complete"})
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self._publish({"type": "error", "message": str(e)})
             self._log("error", "Initial LLM turn failed", error=str(e))
 
@@ -69,7 +69,7 @@ class CopilotProvider(LLMProvider):
         try:
             await self._session.send_and_wait({"prompt": text}, timeout=300)
             self._publish({"type": "turn_complete"})
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self._publish({"type": "error", "message": str(e)})
             self._log("error", "LLM call failed", error=str(e))
 
@@ -78,13 +78,13 @@ class CopilotProvider(LLMProvider):
         if sess:
             try:
                 await sess.disconnect()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
         client = getattr(self, "_client", None)
         if client:
             try:
                 await client.stop()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     # ------------------------------------------------------------------

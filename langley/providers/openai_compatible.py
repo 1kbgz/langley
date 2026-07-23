@@ -15,7 +15,8 @@ import json
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from langley.providers.base import LLMProvider
 
@@ -81,7 +82,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 self._history.append({"role": "assistant", "content": full})
                 self._publish({"type": "message", "content": full})
             self._publish({"type": "turn_complete"})
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             self._publish({"type": "error", "message": str(exc)})
             self._log("error", "openai-compatible turn failed", error=str(exc))
 

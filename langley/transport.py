@@ -6,8 +6,9 @@ import json
 import os
 import threading
 import time
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Any
 
 from langley.models import Message, MessageReceipt
 

@@ -34,51 +34,51 @@ from langley.tenant import LocalTenantManager, TenantManager
 from langley.transport import FileMessageTransport, MessageTransport, Subscription
 
 __all__ = [
-    "__version__",
-    # Models
-    "AgentProfile",
-    "AuditEntry",
-    "CheckpointData",
-    "Identity",
-    "Message",
-    "MessageReceipt",
-    "Tenant",
-    # Interfaces
-    "AuditLog",
-    "AuthProvider",
-    "MessageTransport",
-    "ProfileStore",
-    "StateStore",
-    "Subscription",
-    "TenantManager",
+    # Router / messaging patterns
+    "DEAD_LETTER_CHANNEL",
     # Agent lifecycle
     "AgentContext",
     "AgentInfo",
     "AgentProcessManager",
+    # Models
+    "AgentProfile",
     "AgentSDK",
     "AgentStatus",
-    "RestartPolicy",
-    # Profile management
-    "SqliteProfileStore",
-    "load_profile_from_file",
-    "load_profile_from_string",
-    "merge_profiles",
-    # Router / messaging patterns
-    "DEAD_LETTER_CHANNEL",
-    "MessageRouter",
-    # Server / API
-    "ServerState",
-    "create_app",
+    "AuditEntry",
+    # Interfaces
+    "AuditLog",
+    "AuthProvider",
+    "CheckpointData",
     # Built-in implementations
     "FileMessageTransport",
+    "Identity",
     "LocalAuthProvider",
     "LocalTenantManager",
     "MacAuthProvider",
+    "Message",
+    "MessageReceipt",
+    "MessageRouter",
+    "MessageTransport",
     "NoAuthProvider",
     "PamAuthProvider",
+    "ProfileStore",
+    "RestartPolicy",
+    # Server / API
+    "ServerState",
     "SqliteAuditLog",
+    # Profile management
+    "SqliteProfileStore",
     "SqliteStateStore",
+    "StateStore",
+    "Subscription",
+    "Tenant",
+    "TenantManager",
     "Win32AuthProvider",
+    "__version__",
+    "create_app",
     "create_auth_provider",
     "load_config",
+    "load_profile_from_file",
+    "load_profile_from_string",
+    "merge_profiles",
 ]

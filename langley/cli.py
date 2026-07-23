@@ -48,7 +48,7 @@ def _api_request(base: str, method: str, path: str, body: dict | None = None) ->
     data = json.dumps(body).encode() if body else None
     req = Request(url, data=data, method=method, headers={"Content-Type": "application/json"})
     try:
-        with urlopen(req) as resp:  # noqa: S310 — URL comes from user's own --url flag
+        with urlopen(req) as resp:
             return json.loads(resp.read())
     except URLError as e:
         logger.error("Error connecting to %s: %s", base, e)
