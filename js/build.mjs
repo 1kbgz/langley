@@ -31,28 +31,19 @@ async function build() {
   await cpy("src/html/*", "dist/");
 
   // Copy images
-<<<<<<< before updating
-  fs.mkdirSync("dist/img", { recursive: true });
-  await cpy("src/img/*", "dist/img");
-=======
   if (fs.existsSync("src/img")) {
     fs.mkdirSync("dist/img", { recursive: true });
     await cpy("src/img/*", "dist/img");
   }
->>>>>>> after updating
 
   await Promise.all(BUNDLES.map(bundle)).catch(() => process.exit(1));
 
   // Copy servable assets to python extension (exclude esm/)
   fs.mkdirSync("../langley/extension", { recursive: true });
   await cpy("dist/**/*", "../langley/extension", {
-<<<<<<< before updating
-    filter: (file) => !file.relativePath.startsWith("esm"),
-=======
     filter: (file) =>
       !file.relativePath.startsWith("esm/") &&
       !file.relativePath.startsWith("dist/esm/"),
->>>>>>> after updating
   });
 }
 
