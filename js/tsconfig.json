@@ -19,14 +19,10 @@
     "target": "ES2020",
     "useDefineForClassFields": true
   },
-<<<<<<< before updating
   "include": [
     "./src/ts/*.ts",
     "./src/ts/*.tsx",
     "./tests/*.ts",
     "./tests/*.tsx"
   ]
-=======
-  "include": ["./src/ts/*.ts"]
->>>>>>> after updating
 }
