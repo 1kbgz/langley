@@ -15,7 +15,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-from starlette.routing import Mount, Route, WebSocketRoute
+from starlette.routing import BaseRoute, Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 
 from langley.discovery import discover_agents, save_agent_to_disk
@@ -316,8 +316,9 @@ async def list_channels(request: Request) -> Response:
     """Return all known message channels."""
     state = _state(request)
     channels: list[str] = []
-    if hasattr(state.transport, "list_channels"):
-        channels = state.transport.list_channels()
+    list_channels = getattr(state.transport, "list_channels", None)
+    if callable(list_channels):
+        channels = list_channels()
     result = []
     for ch in channels:
         # Count messages by replaying (cheap for file transport)
@@ -651,7 +652,7 @@ async def generate_agent_profile(request: Request) -> Response:
     channel = f"agent.{agent_id}.inbox"
     msg = Message(
         channel=channel,
-        body=prompt,
+        body={"text": prompt},
         sender="api",
         recipient=agent_id,
         headers={"type": "generate_profile"},
@@ -675,7 +676,7 @@ async def healthz(request: Request) -> Response:
 # ---------------------------------------------------------------------------
 
 
-def create_api_routes() -> list[Route]:
+def create_api_routes() -> list[BaseRoute]:
     """Return the list of API routes."""
     return [
         # Health

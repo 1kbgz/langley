@@ -40,6 +40,7 @@ develop = [
     "bump-my-version",
     "check-dist",
     "codespell",
+    "github-copilot-sdk>=1",
     "hatch-js",
     "hatchling",
     "httpx",
@@ -54,7 +55,7 @@ develop = [
     "uv",
     "wheel",
     # auth
-    "pamela; sys_platform == 'linux'",
+    "pamela; sys_platform != 'win32'",
     "pywin32; sys_platform == 'win32'",
 ]
 

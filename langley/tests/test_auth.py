@@ -154,6 +154,7 @@ class TestNoAuthProvider:
     def test_authorize_always_true(self):
         provider = NoAuthProvider()
         ident = provider.authenticate("t1", "user", "pass")
+        assert ident is not None
         assert provider.authorize(ident, "admin") is True
         assert provider.authorize(ident, "view") is True
 
@@ -190,6 +191,7 @@ class TestPamAuthProvider:
         # Second auth should find existing user
         with patch("langley.auth.PamAuthProvider._os_authenticate", return_value=True):
             ident2 = provider.authenticate("t1", "testuser", "testpass")
+        assert ident2 is not None
         assert ident2.user_id == ident.user_id
         provider.close()
 

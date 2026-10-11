@@ -7,7 +7,7 @@ import signal
 import subprocess
 import sys
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from langley.audit import AuditLog
@@ -141,12 +141,7 @@ class AgentProcessManager:
 
         # Auto-generate command for provider-based agents
         if not profile.command and profile.llm_provider:
-            profile = AgentProfile(
-                **{
-                    **profile.to_dict(),
-                    "command": [sys.executable, "-m", "langley.agent_runner"],
-                }
-            )
+            profile = replace(profile, command=[sys.executable, "-m", "langley.agent_runner"])
 
         if agent_id is None:
             agent_id = _new_id()
