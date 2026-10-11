@@ -40,10 +40,12 @@ develop = [
     "bump-my-version",
     "check-dist",
     "codespell",
+    "github-copilot-sdk>=1",
     "hatch-js",
     "hatchling",
     "httpx",
     "mdformat",
+    "mdformat-frontmatter",
     "mdformat-tables>=1",
     "pytest",
     "pytest-cov",
@@ -53,7 +55,7 @@ develop = [
     "uv",
     "wheel",
     # auth
-    "pamela; sys_platform == 'linux'",
+    "pamela; sys_platform != 'win32'",
     "pywin32; sys_platform == 'win32'",
 ]
 
@@ -92,7 +94,7 @@ replace = '"version": "{new_version}"'
 [tool.coverage.run]
 branch = true
 omit = [
-    "langley/tests/integration/",
+    "langley/tests/integration/*",
 ]
 
 [tool.coverage.report]

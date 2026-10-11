@@ -256,6 +256,20 @@ class TestAgents:
         assert "message_id" in r.json()
         client.post(f"/api/agents/{aid}/kill")
 
+    def test_generate_profile_sends_structured_message(self, client, state):
+        profile = self._create_profile(client)
+        launched = client.post("/api/agents", json={"profile_id": profile["id"]})
+        agent_id = launched.json()["agent_id"]
+        try:
+            response = client.post(f"/api/agents/{agent_id}/generate-profile")
+            assert response.status_code == 200
+            messages = list(state.transport.replay(f"agent.{agent_id}.inbox"))
+            assert len(messages) == 1
+            assert messages[0].body == {"text": response.json()["prompt_sent"]}
+            assert messages[0].headers == {"type": "generate_profile"}
+        finally:
+            client.post(f"/api/agents/{agent_id}/kill")
+
 
 # ------------------------------------------------------------------
 # Messages

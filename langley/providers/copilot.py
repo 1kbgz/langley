@@ -35,9 +35,9 @@ class CopilotProvider(LLMProvider):
     """Bridges a Copilot SDK session with the agent runner."""
 
     async def start(self) -> None:
-        from copilot import CopilotClient, PermissionHandler  # optional external dep
+        from copilot import CopilotClient, PermissionHandler, RuntimeConnection  # optional external dep
 
-        self._client: Any = CopilotClient({"cli_path": _find_copilot_cli()})
+        self._client: Any = CopilotClient(connection=RuntimeConnection.for_stdio(path=_find_copilot_cli()))
         await self._client.start()
 
         session_config: dict[str, Any] = {
@@ -49,7 +49,7 @@ class CopilotProvider(LLMProvider):
         if self.config.system_prompt:
             session_config["system_message"] = {"mode": "append", "content": self.config.system_prompt}
 
-        self._session: Any = await self._client.create_session(session_config)
+        self._session: Any = await self._client.create_session(**session_config)
         self._session.on(self._handle_event)
         self._log("info", "copilot provider ready", model=self.config.model)
 
@@ -58,7 +58,7 @@ class CopilotProvider(LLMProvider):
             return
         self._publish({"type": "thinking", "content": ""})
         try:
-            await self._session.send_and_wait({"prompt": "Begin."}, timeout=300)
+            await self._session.send_and_wait("Begin.", timeout=300)
             self._publish({"type": "turn_complete"})
         except Exception as e:  # noqa: BLE001
             self._publish({"type": "error", "message": str(e)})
@@ -67,7 +67,7 @@ class CopilotProvider(LLMProvider):
     async def send_message(self, text: str) -> None:
         self._publish({"type": "thinking", "content": ""})
         try:
-            await self._session.send_and_wait({"prompt": text}, timeout=300)
+            await self._session.send_and_wait(text, timeout=300)
             self._publish({"type": "turn_complete"})
         except Exception as e:  # noqa: BLE001
             self._publish({"type": "error", "message": str(e)})

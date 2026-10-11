@@ -7,6 +7,7 @@ import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import ClassVar
+from unittest.mock import call, create_autospec
 
 import pytest
 
@@ -161,3 +162,45 @@ class TestOpenAICompatibleProvider:
         )
         with pytest.raises(RuntimeError, match="model"):
             asyncio.run(provider.start())
+
+
+class TestCopilotProvider:
+    def test_uses_copilot_sdk_signatures(self, monkeypatch):
+        import copilot
+        from copilot import CopilotClient, CopilotSession, PermissionHandler, StdioRuntimeConnection
+
+        from langley.providers.copilot import CopilotProvider
+
+        client_class = create_autospec(CopilotClient)
+        client = client_class.return_value
+        session = create_autospec(CopilotSession, instance=True)
+        client.create_session.return_value = session
+        monkeypatch.setattr(copilot, "CopilotClient", client_class)
+        monkeypatch.setattr("langley.providers.copilot._find_copilot_cli", lambda: "/fake/copilot")
+        provider = CopilotProvider(
+            ProviderConfig(provider="github-copilot", model="test-model", system_prompt="Test prompt"),
+            publish=lambda body: None,
+            log=lambda *args, **kwargs: None,
+        )
+
+        async def run():
+            await provider.start()
+            await provider.send_initial_turn()
+            await provider.send_message("Hello")
+            await provider.stop()
+
+        asyncio.run(run())
+
+        connection = client_class.call_args.kwargs["connection"]
+        assert isinstance(connection, StdioRuntimeConnection)
+        assert connection.path == "/fake/copilot"
+        client.start.assert_awaited_once()
+        client.create_session.assert_awaited_once_with(
+            on_permission_request=PermissionHandler.approve_all,
+            streaming=True,
+            model="test-model",
+            system_message={"mode": "append", "content": "Test prompt"},
+        )
+        assert session.send_and_wait.await_args_list == [call("Begin.", timeout=300), call("Hello", timeout=300)]
+        session.disconnect.assert_awaited_once()
+        client.stop.assert_awaited_once()
